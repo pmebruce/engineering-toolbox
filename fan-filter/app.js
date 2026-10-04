@@ -21,10 +21,10 @@ function update(){
   $('warnings').innerHTML=(result.warnings.length?result.warnings:['共同範圍內曲線可計算。請確認輸入資料與實際配置一致。']).map(w=>`<li>${escape(w)}</li>`).join('');
   $('fit-info').textContent=state.method==='quadratic'?`平方擬合 K = ${result.fit.k.toExponential(5)} Pa/(m³/s)²；RMSE = ${fmt(result.fit.rmse,3)} Pa。壓降倍率 ${state.dirty} 僅作用於濾網。`:'使用輸入阻抗的分段線性插值；不增加原點、不外推。壓降倍率僅作用於濾網，其他阻抗保持原設定。';
   drawChart();preview();
-  for(const id of ['fan-export','system-export','all-export','svg-export'])$(id).disabled=id==='system-export'?result.maxQ<=result.minQ:false;
+  for(const id of ['fan-export','system-export','all-export','svg-export','fan-copy','system-copy'])$(id).disabled=['system-export','system-copy'].includes(id)?result.maxQ<=result.minQ:false;
  }catch(e){
   result=null;$('error').hidden=false;$('error').textContent=e.message;$('operating').innerHTML='<p class="op-detail">請修正輸入後再計算</p>';$('dirty-result').textContent='';$('chart').innerHTML='<p class="note">等待有效曲線資料</p>';$('warnings').innerHTML='';$('fit-info').textContent='';$('point-count').textContent='';$('area-info').textContent='';$('preview-head').textContent='';$('preview-body').textContent='';
-  for(const id of ['fan-export','system-export','all-export','svg-export'])$(id).disabled=true;
+  for(const id of ['fan-export','system-export','all-export','svg-export','fan-copy','system-copy'])$(id).disabled=true;
  }
 }
 function chartLine(points,x,y,color,dash=''){return `<path d="${points.map((p,i)=>`${i?'L':'M'}${x(p.q).toFixed(2)},${y(p.p).toFixed(2)}`).join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" ${dash?`stroke-dasharray="${dash}"`:''}/>`;}
@@ -71,6 +71,8 @@ for(const id of ids)$(id).addEventListener('input',()=>{
 $('example').addEventListener('click',()=>{if(!isDemo&&!confirm('載入示範會取代目前輸入，是否繼續？'))return;apply(example);isDemo=true;update();save();});
 $('clear').addEventListener('click',()=>{if(!confirm('清空目前兩條曲線？其他設定會保留。'))return;$('fanText').value='';$('filterText').value='';isDemo=false;update();save();});
 for(const kind of ['fan','filter'])$(kind+'-file').addEventListener('change',async event=>{const file=event.target.files[0];if(!file)return;try{if(file.size>150000)throw Error('檔案過大，請限制在 150 KB 以內。');$(kind+'Text').value=(await file.text()).replace(/^\uFEFF/,'');isDemo=false;update();save();}catch(e){toast(e.message);}event.target.value='';});
+async function copyTable(kind){if(!result)return;const text=tableRows(kind).map(r=>r.join('\t')).join('\n');try{await navigator.clipboard.writeText(text);toast('已複製 '+(kind==='fan'?'風扇':'系統阻抗')+'兩欄，單位：'+units[state.displayFlow]+' / '+units[state.displayPressure]);}catch{$('copy-buffer').hidden=false;$('copy-buffer').value=text;$('copy-buffer').focus();$('copy-buffer').select();toast('請在下方資料框手動複製');}}
+$('fan-copy').addEventListener('click',()=>copyTable('fan'));$('system-copy').addEventListener('click',()=>copyTable('system'));
 $('fan-export').addEventListener('click',()=>csv('fan'));$('system-export').addEventListener('click',()=>csv('system'));$('all-export').addEventListener('click',()=>csv('all'));
 $('svg-export').addEventListener('click',()=>{if(!result)return;const name=`${state.fanName} × ${state.filterName}${isDemo?' · 示範資料':''}`;const exported=chartSvg.replace('height="350"','height="410"').replace('viewBox="0 0 620 350"','viewBox="0 0 620 410"').replace('</svg>',`<text x="70" y="374" font-family="sans-serif" font-size="13" fill="#385665">${escape(name)}</text><text x="70" y="398" font-family="sans-serif" font-size="12" fill="#385665">藍：風扇　綠：濾網　棕：系統　紫：倍率情境 × ${escape(state.dirty)}</text></svg>`);download(exported,'image/svg+xml','fan-filter-curves.svg');});
 apply(example);try{const saved=JSON.parse(localStorage.getItem('fan-filter-v1'));if(saved&&typeof saved==='object'){apply(saved);isDemo=saved.isDemo===true;}}catch{}update();
