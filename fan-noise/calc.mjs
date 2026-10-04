@@ -26,3 +26,26 @@ export function distanceLevel(level,r1,r2){
  if(level< -30||level>180||r1<=0||r2<=0||r1>1000||r2>1000)throw Error('聲壓需為 −30 至 180 dBA，距離需大於 0 且不超過 1,000 m。');
  return level-20*Math.log10(r2/r1);
 }
+
+// A first-pass speed estimate; baseline acoustic and airflow data remain intact.
+export function estimateSpeed(s,o){
+ if(!s.speedModel||s.speedModel==='off')return null;
+ if(o.basis!=='LpA')throw Error('降轉目標需使用 LpA 聲壓資料。');
+ const base=evaluateScenario(s,o);
+ const valid=(v,label,min,max)=>{if(String(v??'').trim()===''||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error('請填有效的'+label);return Number(v);};
+ let lower=valid(s.minSpeed??50,'最低轉速比例 (1–100%)',1,100)/100,coefficient=50;
+ const rpm=String(s.rpm??'').trim()===''?null:valid(s.rpm,'基準轉速 RPM',1,1e6);
+ if(s.speedModel==='calibrated'){
+  if(rpm===null)throw Error('兩點校正需填基準轉速 RPM。');
+  const rpm2=valid(s.rpm2,'第二點 RPM',1,1e6),level2=valid(s.level2,'第二點單顆 LpA',-30,180);
+  if(rpm2>=rpm||level2>=Number(s.level))throw Error('第二點需為較低轉速、較低噪音，且量測條件相同。');
+  coefficient=(level2-Number(s.level))/Math.log10(rpm2/rpm);
+  lower=Math.max(lower,rpm2/rpm); // Interpolate only inside the provided acoustic range.
+ }else if(s.speedModel!=='law')throw Error('未知的降轉估算方式。');
+ const ceiling=Math.min(1,10**((Number(o.limit)-base.total)/coefficient));
+ const ratio=Math.max(lower,ceiling),total=base.total+coefficient*Math.log10(ratio);
+ const totalFlow=base.totalFlow===null?null:base.totalFlow*ratio;
+ const noisePass=ceiling>=lower-1e-10,flowPass=totalFlow===null?null:totalFlow+1e-8>=Number(o.flowTarget);
+ const needed=base.totalFlow===null?null:base.totalFlow===0?(Number(o.flowTarget)===0?0:Infinity):Number(o.flowTarget)/base.totalFlow;
+ return {ratio,rpm:rpm===null?null:rpm*ratio,total,totalFlow,noisePass,flowPass,feasible:noisePass?(flowPass===null?null:flowPass):false,coefficient,lower,ceiling,requiredRatio:needed,margin:Number(o.limit)-total};
+}

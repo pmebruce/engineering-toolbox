@@ -4,3 +4,23 @@ const s={count:'2',level:'25',distance:'1',flow:'55'},o={basis:'LpA',distance:'1
 assert.throws(()=>evaluateScenario(s,{...o,distance:'2'}));r=evaluateScenario(s,{...o,distance:'2',distanceMode:'free'});near(r.total,21.98970004336);r=evaluateScenario(s,{...o,basis:'LwA',distance:''});near(r.total,28.01029995664);assert.equal(r.noisePass,null);assert.equal(r.margin,null);
 assert.equal(evaluateScenario({...s,flow:''},o).flowPass,null);assert.equal(evaluateScenario({...s,flow:'49'},o).flowPass,false);assert.throws(()=>evaluateScenario({...s,count:'1.5'},o));assert.throws(()=>evaluateScenario({...s,level:''},o));assert.throws(()=>evaluateScenario(s,{...o,distance:'0'}));near(evaluateScenario({...s,rpm:'9000'},o).total,evaluateScenario(s,o).total);console.log('Passed: acoustic energy addition, distance law/conditions, sound-power separation, flow target, missing/invalid input, RPM does not imply noise.');
 const {parseLevels,distanceLevel}=await import('./calc.mjs');assert.deepEqual(parseLevels('40\n35,30\t25'),[40,35,30,25]);near(combine(parseLevels('40 35 30')),41.51133104744714);near(distanceLevel(40,1,2),33.979400086720375);near(distanceLevel(40,2,1),46.020599913279625);near(distanceLevel(40,2,2),40);assert.throws(()=>parseLevels(''));assert.throws(()=>parseLevels('40abc'));assert.throws(()=>distanceLevel('',1,2));assert.throws(()=>distanceLevel(40,0,2));console.log('Passed: mixed-level addition, input parsing, standalone distance conversion and invalid values.');
+
+const {estimateSpeed}=await import('./calc.mjs');
+const baseline={...s,count:'1',level:'40',flow:'100',rpm:'2000',speedModel:'law',minSpeed:'50'};
+const goal={...o,limit:40+50*Math.log10(.8),flowTarget:'80'};
+let speed=estimateSpeed(baseline,goal);near(speed.ratio,.8);near(speed.rpm,1600);near(speed.totalFlow,80);near(speed.total,Number(goal.limit));assert.equal(speed.feasible,true);
+assert.equal(estimateSpeed(baseline,{...goal,flowTarget:'81'}).feasible,false);
+speed=estimateSpeed({...baseline,minSpeed:'90'},goal);near(speed.ratio,.9);assert.equal(speed.noisePass,false);
+speed=estimateSpeed(baseline,{...goal,limit:'45'});near(speed.ratio,1);near(speed.rpm,2000);
+speed=estimateSpeed({...baseline,flow:'',rpm:''},goal);assert.equal(speed.rpm,null);assert.equal(speed.feasible,null);
+assert.equal(estimateSpeed({...baseline,flow:'0'},goal).flowPass,false);
+assert.equal(estimateSpeed({...baseline,speedModel:'off'},goal),null);
+assert.throws(()=>estimateSpeed(baseline,{...goal,basis:'LwA'}));
+assert.throws(()=>estimateSpeed({...baseline,minSpeed:''},goal));
+const calibrated={...baseline,speedModel:'calibrated',rpm2:'1000',level2:String(40+40*Math.log10(.5))};
+speed=estimateSpeed(calibrated,{...goal,limit:40+40*Math.log10(.75),flowTarget:'75'});near(speed.coefficient,40);near(speed.ratio,.75);assert.equal(speed.feasible,true);
+speed=estimateSpeed({...calibrated,minSpeed:'10'},{...goal,limit:'20'});near(speed.ratio,.5);assert.equal(speed.noisePass,false);
+assert.throws(()=>estimateSpeed({...calibrated,rpm2:'2000'},goal));assert.throws(()=>estimateSpeed({...calibrated,level2:'41'},goal));
+speed=estimateSpeed({...baseline,count:'2'},{...goal,limit:40+10*Math.log10(2)+50*Math.log10(.8),flowTarget:'160'});near(speed.ratio,.8);near(speed.totalFlow,160);
+speed=estimateSpeed(baseline,{...goal,distanceMode:'free',distance:'2',limit:Number(goal.limit)-20*Math.log10(2)});near(speed.ratio,.8);
+assert.equal(baseline.rpm,'2000');assert.equal(baseline.flow,'100');console.log('Passed: noise-limited speed, linear airflow, minimum speed, missing airflow/RPM, multi-fan/distance correction, calibration bounds, no baseline mutation.');
