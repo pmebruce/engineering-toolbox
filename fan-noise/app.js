@@ -1,4 +1,4 @@
-import {evaluateScenario,combine,parseLevels,distanceLevel} from './calc.mjs?v=1.1';
+import {evaluateScenario,combine,parseLevels,distanceLevel} from './calc.mjs?v=1.2';
 const $=id=>document.getElementById(id),keys=['basis','flowTarget','limit','distance','distanceMode'];
 const sources={vendor:'廠商資料',measured:'實測',estimate:'推估'};
 const demo=[{name:'單顆高速 · 示範',count:'1',level:'32',distance:'1',flow:'110',rpm:'2200',source:'estimate'},{name:'雙顆低速 · 示範',count:'2',level:'25',distance:'1',flow:'55',rpm:'1400',source:'estimate'},{name:'四顆低速 · 示範',count:'4',level:'22',distance:'1',flow:'28',rpm:'1000',source:'estimate'}];
@@ -59,6 +59,19 @@ function updateExtras(){
 }
 function saveExtras(){try{localStorage.setItem('fan-noise-extras-v1',JSON.stringify(Object.fromEntries(extraIds.map(id=>[id,$(id).value]))));}catch{}}
 for(const id of extraIds)$(id).addEventListener('input',()=>{if(id==='sum-basis'){$('sum-levels').value='';toast('請輸入所選聲學類型的數值。');}updateExtras();saveExtras();});
-async function copyExtra(text){try{await navigator.clipboard.writeText(text);toast('已複製計算結果');}catch{$('copy-buffer').hidden=false;$('copy-buffer').value=text;$('copy-buffer').focus();$('copy-buffer').select();toast('請在資料框手動複製');}}
+async function copyExtra(text){try{await navigator.clipboard.writeText(text);toast('已複製計算結果');}catch{$('extra-copy-buffer').hidden=false;$('extra-copy-buffer').value=text;$('extra-copy-buffer').focus();$('extra-copy-buffer').select();toast('請在資料框手動複製');}}
 $('sum-copy').addEventListener('click',()=>{if(sumText)copyExtra(sumText);});$('prop-copy').addEventListener('click',()=>{if(propText)copyExtra(propText);});
 try{const saved=JSON.parse(localStorage.getItem('fan-noise-extras-v1'));if(saved)for(const id of extraIds)if(saved[id]!==undefined)$(id).value=saved[id];}catch{}updateExtras();
+
+const tabNames=['fans','addition','distance'];
+const hashTabs={'#noise-addition':'addition','#noise-distance':'distance','#fan-scenarios':'fans','#fans':'fans','#addition':'addition','#distance':'distance'};
+function showTab(name,changeHash=false){
+ if(!tabNames.includes(name))name='fans';
+ for(const key of tabNames){const selected=key===name,button=$('tab-'+key);$('panel-'+key).hidden=!selected;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;}
+ $('extra-copy-buffer').hidden=true;
+ if(changeHash)history.replaceState(null,'','#'+name);
+}
+for(const name of tabNames){$('tab-'+name).addEventListener('click',()=>showTab(name,true));$('tab-'+name).addEventListener('keydown',e=>{
+ let index=tabNames.indexOf(name);if(e.key==='ArrowRight')index=(index+1)%3;else if(e.key==='ArrowLeft')index=(index+2)%3;else if(e.key==='Home')index=0;else if(e.key==='End')index=2;else return;e.preventDefault();showTab(tabNames[index],true);$('tab-'+tabNames[index]).focus();
+});}
+window.addEventListener('hashchange',()=>showTab(hashTabs[location.hash]||'fans'));showTab(hashTabs[location.hash]||'fans');
