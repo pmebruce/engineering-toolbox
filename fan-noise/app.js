@@ -1,4 +1,4 @@
-import {evaluateScenario} from './calc.mjs?v=1.0';
+import {evaluateScenario,combine,parseLevels,distanceLevel} from './calc.mjs?v=1.1';
 const $=id=>document.getElementById(id),keys=['basis','flowTarget','limit','distance','distanceMode'];
 const sources={vendor:'廠商資料',measured:'實測',estimate:'推估'};
 const demo=[{name:'單顆高速 · 示範',count:'1',level:'32',distance:'1',flow:'110',rpm:'2200',source:'estimate'},{name:'雙顆低速 · 示範',count:'2',level:'25',distance:'1',flow:'55',rpm:'1400',source:'estimate'},{name:'四顆低速 · 示範',count:'4',level:'22',distance:'1',flow:'28',rpm:'1000',source:'estimate'}];
@@ -35,3 +35,30 @@ $('csv').addEventListener('click',()=>{download('\uFEFF'+table().map(row=>row.ma
 $('copy').addEventListener('click',async()=>{const text=table().map(r=>r.join('\t')).join('\n');try{await navigator.clipboard.writeText(text);toast('已複製比較表');}catch{$('copy-buffer').hidden=false;$('copy-buffer').value=text;$('copy-buffer').focus();$('copy-buffer').select();toast('請在資料框手動複製');}});
 try{const saved=JSON.parse(localStorage.getItem('fan-noise-v1'));if(saved&&Array.isArray(saved.rows)&&saved.rows.length>0&&saved.rows.length<=6){rows=saved.rows;isDemo=saved.isDemo===true;for(const k of keys)if(saved.options?.[k]!==undefined)$(k).value=saved.options[k];}}catch{}renderRows();update();
 let prompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e;});$('install').addEventListener('click',async()=>{if(prompt){await prompt.prompt();prompt=null;}else toast('iPhone：Safari 分享選單 → 加入主畫面');});if(navigator.standalone||window.matchMedia('(display-mode: standalone)').matches){$('install').textContent='已安裝';$('install').disabled=true;}if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});
+
+const extraIds=['sum-basis','sum-levels','prop-level','prop-from','prop-to'];let sumText='',propText='';
+function updateExtras(){
+ try{const levels=parseLevels($('sum-levels').value),total=combine(levels),dominant=Math.max(...levels),basis=$('sum-basis').value;
+  $('sum-result').innerHTML=`${levels.length} 個聲源合成 ${basis}<strong>${fmt(total)} <small>${basis==='LpA'?'dBA':'dB re 1 pW'}</small></strong>比最大聲源 ${fmt(dominant)} 增加 ${fmt(total-dominant)} dB`;
+  sumText=`噪音疊加 (${basis})\n聲源: ${levels.join(', ')}\n合成: ${total.toFixed(4)} ${basis==='LpA'?'dBA':'dB re 1 pW'}\n條件: 互不相關聲源；聲壓為同一評估位置。`;$('sum-copy').disabled=false;
+ }catch(e){sumText='';$('sum-result').innerHTML=`<span class="fail">${esc(e.message)}</span>`;$('sum-copy').disabled=true;}
+ try{const level=$('prop-level').value,r1=$('prop-from').value,r2=$('prop-to').value,value=distanceLevel(level,r1,r2),delta=value-Number(level);
+  $('prop-result').innerHTML=`在 ${esc(r2)} m 的估算聲壓<strong>${fmt(value)} <small>dBA</small></strong>相較 ${esc(r1)} m：${delta>0?'增加':'降低'} ${fmt(Math.abs(delta))} dB`;
+  const distances=[...new Set([.5,1,2,3,5,10,Number(r1),Number(r2)])].sort((a,b)=>a-b),data=distances.map(r=>({r,l:distanceLevel(level,r1,r)}));
+  $('prop-table').innerHTML=data.map(({r,l})=>`<tr><td>${fmt(r,4)}</td><td>${fmt(l)}</td><td>${l-Number(level)>0?'+':''}${fmt(l-Number(level))}</td></tr>`).join('');
+  const W=500,H=220,L=48,R=24,T=20,B=40,lo=Math.min(...data.map(p=>p.l))-3,hi=Math.max(...data.map(p=>p.l))+3,minR=Math.log10(distances[0]),maxR=Math.log10(distances.at(-1));
+  const x=r=>L+(Math.log10(r)-minR)/(maxR-minR)*(W-L-R),y=l=>H-B-(l-lo)/(hi-lo)*(H-T-B);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="聲壓隨距離變化圖"><rect width="${W}" height="${H}" fill="white"/>`;
+  for(let i=0;i<=3;i++){const l=lo+(hi-lo)*i/3;svg+=`<path d="M${L},${y(l)}H${W-R}" stroke="#dce7ec"/><text x="${L-8}" y="${y(l)+4}" text-anchor="end" font-size="11" fill="#506b79">${fmt(l,1)}</text>`;}
+  const samples=Array.from({length:61},(_,i)=>{const r=10**(minR+(maxR-minR)*i/60);return {r,l:distanceLevel(level,r1,r)};});svg+=`<path d="${samples.map((p,i)=>(i?'L':'M')+x(p.r)+','+y(p.l)).join(' ')}" fill="none" stroke="#28899b" stroke-width="3"/>`;
+  for(const {r,l} of data)svg+=`<circle cx="${x(r)}" cy="${y(l)}" r="3" fill="${r===Number(r2)?'#b77759':'#28899b'}"><title>${r} m: ${l.toFixed(2)} dBA</title></circle>`;
+  for(const r of [.5,1,2,5,10])if(r>=distances[0]&&r<=distances.at(-1))svg+=`<text x="${x(r)}" y="${H-B+16}" font-size="11" text-anchor="middle" fill="#506b79">${r}</text>`;
+  svg+=`<text x="${L}" y="14" font-size="11" fill="#506b79">LpA (dBA)</text><text x="${W/2}" y="${H-5}" font-size="11" text-anchor="middle" fill="#506b79">距離 m · 對數刻度</text></svg>`;$('prop-chart').innerHTML=svg;
+  propText='自由場遠場聲壓距離估算\n原量測: '+level+' dBA @ '+r1+' m\n距離_m\t聲壓_dBA\t差異_dB\n'+data.map(p=>[p.r,p.l.toFixed(4),(p.l-Number(level)).toFixed(4)].join('\t')).join('\n');$('prop-copy').disabled=false;
+ }catch(e){propText='';$('prop-result').innerHTML=`<span class="fail">${esc(e.message)}</span>`;$('prop-chart').innerHTML='';$('prop-table').innerHTML='';$('prop-copy').disabled=true;}
+}
+function saveExtras(){try{localStorage.setItem('fan-noise-extras-v1',JSON.stringify(Object.fromEntries(extraIds.map(id=>[id,$(id).value]))));}catch{}}
+for(const id of extraIds)$(id).addEventListener('input',()=>{if(id==='sum-basis'){$('sum-levels').value='';toast('請輸入所選聲學類型的數值。');}updateExtras();saveExtras();});
+async function copyExtra(text){try{await navigator.clipboard.writeText(text);toast('已複製計算結果');}catch{$('copy-buffer').hidden=false;$('copy-buffer').value=text;$('copy-buffer').focus();$('copy-buffer').select();toast('請在資料框手動複製');}}
+$('sum-copy').addEventListener('click',()=>{if(sumText)copyExtra(sumText);});$('prop-copy').addEventListener('click',()=>{if(propText)copyExtra(propText);});
+try{const saved=JSON.parse(localStorage.getItem('fan-noise-extras-v1'));if(saved)for(const id of extraIds)if(saved[id]!==undefined)$(id).value=saved[id];}catch{}updateExtras();
