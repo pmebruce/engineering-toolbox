@@ -1,8 +1,8 @@
-import {FLOW,PRESSURE,calculate,interpolate} from './calc.mjs';
-const $=id=>document.getElementById(id),ids=['fanName','filterName','fanText','filterText','fanFlow','fanPressure','filterFlow','filterPressure','width','height','count','arrangement','speed','method','reference','extra','dirty','displayFlow','displayPressure','samples'];
+import {FLOW,PRESSURE,calculate,interpolate,advancedResistance} from './calc.mjs?v=1.2';
+const $=id=>document.getElementById(id),ids=['fanName','filterName','fanText','filterText','fanFlow','fanPressure','filterFlow','filterPressure','width','height','count','arrangement','speed','method','reference','extra','dirty','displayFlow','displayPressure','samples','resistanceType','density','viscosity','lengthScale','depth'];
 const units={CFM:'CFM','m3/h':'m³/h','L/s':'L/s','m3/s':'m³/s',Pa:'Pa',kPa:'kPa',mmH2O:'mmH₂O',inH2O:'inH₂O'};
-const example={fanName:'示範 120 mm 風扇',filterName:'示範濾網',fanText:'0, 95\n20, 88\n40, 72\n60, 50\n80, 27\n99, 0',filterText:'0, 0\n40, 7\n80, 23\n120, 46\n160, 77\n200, 115',fanFlow:'CFM',fanPressure:'Pa',filterFlow:'CFM',filterPressure:'Pa',width:'263',height:'120',count:'2',arrangement:'parallel',speed:'100',method:'interpolation',reference:'100',extra:'0',dirty:'1.5',displayFlow:'CFM',displayPressure:'Pa',samples:'21'};
-let isDemo=true,result=null,state=null,chartSvg='',toastTimer;
+const example={fanName:'示範 120 mm 風扇',filterName:'示範濾網',fanText:'0, 95\n20, 88\n40, 72\n60, 50\n80, 27\n99, 0',filterText:'0, 0\n40, 7\n80, 23\n120, 46\n160, 77\n200, 115',fanFlow:'CFM',fanPressure:'Pa',filterFlow:'CFM',filterPressure:'Pa',width:'263',height:'120',count:'2',arrangement:'parallel',speed:'100',method:'interpolation',reference:'100',extra:'0',dirty:'1.5',displayFlow:'CFM',displayPressure:'Pa',samples:'21',resistanceType:'planar',density:'1.2',viscosity:'0.0000181',lengthScale:'1',depth:'10'};
+let isDemo=true,result=null,state=null,chartSvg='',toastTimer,advancedResult=null;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:d}):'—';
 function read(){return Object.fromEntries(ids.map(id=>[id,$(id).value]));}
@@ -11,7 +11,7 @@ function toast(message){$('toast').textContent=message;$('toast').hidden=false;c
 function save(){try{localStorage.setItem('fan-filter-v1',JSON.stringify({...read(),isDemo}));$('save-status').textContent='已保存於本機 · 不上傳';}catch{$('save-status').textContent='本機儲存不可用 · 請匯出留存';}}
 function rootMarkup(roots){if(!roots.length)return '<p class="op-detail">有效資料範圍內沒有交點</p>';return roots.map((r,i)=>`<div class="op-detail">${roots.length>1?`交點 ${i+1} · `:''}<div class="metric"><b>${fmt(r.q/FLOW[state.displayFlow],state.displayFlow==='m3/s'?4:2)}</b><span>${units[state.displayFlow]}</span></div><div>系統壓差 ${fmt(r.p/PRESSURE[state.displayPressure],state.displayPressure==='Pa'?2:3)} ${units[state.displayPressure]}</div><small>${r.coincident?'曲線重合 · 工作點不唯一':r.stable?'局部斜率：恢復方向（僅初步判讀）':'局部斜率：需進一步確認'}</small></div>`).join('');}
 function update(){
- state=read();$('demo-status').hidden=!isDemo;$('reference-unit').textContent=units[state.displayFlow];$('extra-unit').textContent=units[state.displayPressure];
+ state=read();updateAdvanced();$('demo-status').hidden=!isDemo;$('reference-unit').textContent=units[state.displayFlow];$('extra-unit').textContent=units[state.displayPressure];
  try{
   result=calculate(state);$('error').hidden=true;$('operating').innerHTML=rootMarkup(result.roots);
   const unique=result.roots.length===1&&result.dirtyRoots.length===1&&!result.roots[0].coincident&&!result.dirtyRoots[0].coincident;
@@ -65,7 +65,7 @@ function csv(kind){if(!result)return;const rows=[headers(kind),...tableRows(kind
 for(const id of ids)$(id).addEventListener('input',()=>{
  if(id==='displayFlow'&&state){const q=Number($('reference').value);if(Number.isFinite(q))$('reference').value=Number((q*FLOW[state.displayFlow]/FLOW[$('displayFlow').value]).toPrecision(10));}
  if(id==='displayPressure'&&state){const p=Number($('extra').value);if(Number.isFinite(p))$('extra').value=Number((p*PRESSURE[state.displayPressure]/PRESSURE[$('displayPressure').value]).toPrecision(10));}
- if(!['displayFlow','displayPressure','samples'].includes(id))isDemo=false;
+ if(!['displayFlow','displayPressure','samples','resistanceType','density','viscosity','lengthScale','depth'].includes(id))isDemo=false;
  update();save();
 });
 $('example').addEventListener('click',()=>{if(!isDemo&&!confirm('載入示範會取代目前輸入，是否繼續？'))return;apply(example);isDemo=true;update();save();});
@@ -75,6 +75,34 @@ async function copyTable(kind){if(!result)return;const text=tableRows(kind).map(
 $('fan-copy').addEventListener('click',()=>copyTable('fan'));$('system-copy').addEventListener('click',()=>copyTable('system'));
 $('fan-export').addEventListener('click',()=>csv('fan'));$('system-export').addEventListener('click',()=>csv('system'));$('all-export').addEventListener('click',()=>csv('all'));
 $('svg-export').addEventListener('click',()=>{if(!result)return;const name=`${state.fanName} × ${state.filterName}${isDemo?' · 示範資料':''}`;const exported=chartSvg.replace('height="350"','height="410"').replace('viewBox="0 0 620 350"','viewBox="0 0 620 410"').replace('</svg>',`<text x="70" y="374" font-family="sans-serif" font-size="13" fill="#385665">${escape(name)}</text><text x="70" y="398" font-family="sans-serif" font-size="12" fill="#385665">藍：風扇　綠：濾網　棕：系統　紫：倍率情境 × ${escape(state.dirty)}</text></svg>`);download(exported,'image/svg+xml','fan-filter-curves.svg');});
+function updateAdvanced(){
+ $('depth-field').hidden=state.resistanceType!=='volume';
+ try{
+  advancedResult=advancedResistance(state);const r=advancedResult;
+  $('advanced-error').hidden=true;$('advanced-output').hidden=false;
+  $('advanced-a').textContent=r.A.toExponential(6);$('advanced-b').textContent=r.B.toExponential(6);
+  $('advanced-settings').textContent=`${r.type==='planar'?'Planar / Collapsed · A、B 無因次':'Volume / Non-Collapsed · A、B 單位 1/m'}；Length Scale = ${r.L} m；Index = 0。Based On：Approach Velocity。`;
+  $('advanced-fit').textContent=`Δp = ${fmt(r.c1,5)} v + ${fmt(r.c2,5)} v² (Pa)；RMSE ${fmt(r.rmse,3)} Pa；最大絕對誤差 ${fmt(r.maxError,3)} Pa。資料範圍 ${fmt(r.minV,3)}–${fmt(r.maxV,3)} m/s。`;
+  $('advanced-warning').textContent=r.constrained?'自由擬合會出現負係數，已改用非負限制的最佳擬合；請檢查曲線形狀與量測偏移。':r.rows[0].v===0&&r.rows[0].p>0?'零風速仍有壓差；此擬合不保留固定偏壓，請檢查量測零點。':'A、B 由目前濾網原始資料換算；工作點仍依「資料處理」選擇計算，未自動改用此擬合。';
+  $('advanced-preview').innerHTML=r.rows.map(p=>`<tr><td>${fmt(p.v,4)}</td><td>${fmt(p.p,3)}</td><td>${fmt(p.predicted,3)}</td><td>${fmt(p.predicted-p.p,3)}</td></tr>`).join('');
+ }catch(e){advancedResult=null;$('advanced-output').hidden=true;$('advanced-error').hidden=false;$('advanced-error').textContent=e.message;}
+}
+function advancedText(){const r=advancedResult;return [
+ 'FloTHERM Advanced Resistance — '+state.filterName+(isDemo?' (synthetic demo data)':''),
+ 'Source: input filter/resistance curve only; excludes extra resistance and dirty multiplier.',
+ 'Resistance Type: '+(r.type==='planar'?'Planar / Collapsed':'Volume / Non-Collapsed'),
+ 'Loss Coefficients Based On: Approach Velocity','Resistance Formula: Advanced',
+ 'A Coefficient: '+r.A.toPrecision(10),'B Coefficient: '+r.B.toPrecision(10),
+ 'Coefficient units: '+(r.type==='planar'?'dimensionless':'1/m'),
+ 'Index: 0','Length Scale: '+r.L+' m',...(r.type==='volume'?['Flow-direction thickness: '+r.d+' m']:[]),
+ 'Density: '+r.rho+' kg/m3','Dynamic viscosity: '+r.mu+' Pa.s','Frontal area: '+r.area+' m2',
+ 'Fit: deltaP(Pa) = '+r.c1.toPrecision(10)+' * v(m/s) + '+r.c2.toPrecision(10)+' * v(m/s)^2',
+ 'Measured velocity range: '+r.minV+' to '+r.maxV+' m/s','Fit RMSE: '+r.rmse+' Pa',
+ 'Check software model type, direction, velocity basis and thickness before use.'
+ ].join('\n');}
+$('advanced-copy').addEventListener('click',async()=>{if(!advancedResult)return;const text=advancedText();try{await navigator.clipboard.writeText(text);toast('已複製 A、B、Index 與完整設定');}catch{$('copy-buffer').hidden=false;$('copy-buffer').value=text;$('copy-buffer').focus();$('copy-buffer').select();toast('請在資料框手動複製設定');}});
+$('advanced-export').addEventListener('click',()=>{if(advancedResult){download(advancedText(),'text/plain;charset=utf-8','flotherm-advanced-resistance.txt');toast('已產生 Advanced 設定 TXT');}});
+
 apply(example);try{const saved=JSON.parse(localStorage.getItem('fan-filter-v1'));if(saved&&typeof saved==='object'){apply(saved);isDemo=saved.isDemo===true;}}catch{}update();
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
 $('install').addEventListener('click',async()=>{if(installPrompt){await installPrompt.prompt();installPrompt=null;}else toast('iPhone：用 Safari 分享選單，選擇「加入主畫面」。');});

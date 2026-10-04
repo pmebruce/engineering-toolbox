@@ -23,3 +23,19 @@ const inCfm=calculate({...base,fanFlow:'CFM',fanText:`0,100\n${1/FLOW.CFM},0`,fi
 assert.throws(()=>calculate({...base,speed:''}));
 const limited=calculate({...base,method:'interpolation',filterText:'0,0\n0.1,1'});assert.equal(limited.roots.length,0);
 console.log('Passed: parsing, duplicates, units, face velocity, fitting, intersections, tangent/multiple roots, fan array/speed, range limits.');
+const {advancedResistance}=await import('./calc.mjs');
+const settings={...base,width:'500',height:'200',filterFlow:'m/s',filterText:'0,0\n0.5,5\n1,14\n2,44',resistanceType:'planar',density:'1.2',viscosity:'0.000018',lengthScale:'1',depth:'10'};
+let ab=advancedResistance(settings);close(ab.c1,6);close(ab.c2,8);close(ab.A,2*6/.000018);close(ab.B,2*8/1.2);close(ab.rmse,0);
+// Back-substitute the actual FloTHERM law at every measured velocity.
+for(const {v,p} of ab.rows.filter(p=>p.v>0)){const Re=ab.rho*v*ab.L/ab.mu;close(.5*ab.rho*v*v*(ab.A/Re+ab.B),p);}
+const vol=advancedResistance({...settings,resistanceType:'volume'});close(vol.A,ab.A/.01);close(vol.B,ab.B/.01);
+for(const {v,p} of vol.rows.filter(p=>p.v>0)){const Re=vol.rho*v*vol.L/vol.mu;close(vol.d*.5*vol.rho*v*v*(vol.A/Re+vol.B),p);}
+const rescaled=advancedResistance({...settings,lengthScale:'0.01'});close(rescaled.A,ab.A*.01);close(rescaled.B,ab.B);
+const cfmPoints=ab.rows.map(({v,p})=>`${v*ab.area/FLOW.CFM},${p/PRESSURE.mmH2O}`).join('\n');
+const inOtherUnits=advancedResistance({...settings,filterFlow:'CFM',filterPressure:'mmH2O',filterText:cfmPoints});close(inOtherUnits.A,ab.A);close(inOtherUnits.B,ab.B);
+const linear=advancedResistance({...settings,filterText:'0,0\n1,6\n2,12'});close(linear.c1,6);close(linear.c2,0);
+const quad=advancedResistance({...settings,filterText:'0,0\n1,8\n2,32'});close(quad.c1,0);close(quad.c2,8);
+const bounded=advancedResistance({...settings,filterText:'0,0\n1,10\n2,12'});assert.equal(bounded.constrained,true);assert.ok(bounded.c1>=0&&bounded.c2>=0);
+assert.throws(()=>advancedResistance({...settings,filterText:'0,0\n1,10'}));assert.throws(()=>advancedResistance({...settings,viscosity:''}));assert.throws(()=>advancedResistance({...settings,resistanceType:'volume',depth:'0'}));
+close(advancedResistance({...settings,extra:'500',dirty:'4'}).A,ab.A);
+console.log('Passed: Advanced A/B back-substitution, volume thickness, length scale, flow/pressure conversions, pure terms, nonnegative fit, invalid input, source isolation.');

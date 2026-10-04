@@ -5,3 +5,5 @@ textarea[hidden]{display:none}
 .chart-controls label{white-space:nowrap}.chart-controls select{flex:1;min-width:0;width:0}
 
 @media(max-width:760px){.chart svg g{font-size:22px}}
+
+label[hidden],#advanced-output[hidden]{display:none}.ab-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.ab-values>div{background:#edf5f8;border:1px solid #ccdee7;border-radius:12px;padding:14px;min-width:0}.ab-values span{display:block;font-size:13px;color:#476574}.ab-values strong{display:block;color:#173f55;font-size:20px;font-variant-numeric:tabular-nums;margin-top:8px;overflow-wrap:anywhere}.advanced-notes{margin-top:18px}.advanced-notes p{font-size:13px;line-height:1.8;color:#4a6371;overflow-wrap:anywhere}@media(max-width:400px){.ab-values strong{font-size:17px}}

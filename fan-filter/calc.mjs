@@ -74,3 +74,30 @@ export function calculate(s){
  if(speed!==1)warnings.push('轉速依相似律縮放：Q ∝ N、Δp ∝ N²；假設風扇幾何與空氣密度不變。');
  return {fan,filter,fit,filterAt,system,roots,dirtyRoots,warnings,minQ,maxQ,area,dirty};
 }
+
+// FloTHERM Advanced: f = A/Re + B/Re^Index, Index = 0.
+// Fit total measured pressure drop against approach velocity; no constant term.
+export function advancedResistance(s){
+ const positive=(key,label)=>{const raw=String(s[key]??'').trim(),v=Number(raw);if(!raw||!Number.isFinite(v)||v<=0)throw Error(`${label}需為大於零的有限數。`);return v;};
+ const area=positive('width','迎風寬度')*positive('height','迎風高度')/1e6;
+ const rho=positive('density','空氣密度'),mu=positive('viscosity','動力黏度'),L=positive('lengthScale','Length Scale');
+ if(!['planar','volume'].includes(s.resistanceType))throw Error('請選擇平面或體積阻抗。');
+ const d=s.resistanceType==='volume'?positive('depth','流向厚度')/1000:1;
+ if((!FLOW[s.filterFlow]&&s.filterFlow!=='m/s')||!PRESSURE[s.filterPressure])throw Error('請選擇有效濾網單位。');
+ const points=parsePoints(s.filterText,'Advanced 濾網資料').map(({q,p})=>({v:s.filterFlow==='m/s'?q:q*FLOW[s.filterFlow]/area,p:p*PRESSURE[s.filterPressure]}));
+ if(points.filter(p=>p.v>0).length<2)throw Error('需至少兩個不同的正風速資料點，才能辨識線性與平方兩項。');
+ const scale=points.at(-1).v;
+ let s2=0,s3=0,s4=0,t1=0,t2=0;
+ for(const {v,p} of points){const x=v/scale;s2+=x*x;s3+=x**3;s4+=x**4;t1+=x*p;t2+=x*x*p;}
+ const det=s2*s4-s3*s3;
+ if(!(det>1e-12*s2*s4))throw Error('正風速資料過於接近，無法可靠區分兩項；請擴大量測風速範圍。');
+ const u=(t1*s4-t2*s3)/det,w=(s2*t2-s3*t1)/det;
+ const candidates=[{u:Math.max(0,t1/s2),w:0},{u:0,w:Math.max(0,t2/s4)}];
+ if(u>=0&&w>=0)candidates.push({u,w});
+ for(const c of candidates)c.sse=points.reduce((sum,{v,p})=>sum+(c.u*v/scale+c.w*(v/scale)**2-p)**2,0);
+ const best=candidates.sort((a,b)=>a.sse-b.sse)[0],c1=best.u/scale,c2=best.w/scale**2;
+ const A=2*L*c1/(mu*d),B=2*c2/(rho*d);
+ if(![area,c1,c2,A,B].every(Number.isFinite))throw Error('數值超出可計算範圍，請確認尺寸與物性。');
+ const rows=points.map(p=>({...p,predicted:c1*p.v+c2*p.v**2}));
+ return {A,B,index:0,L,d,rho,mu,area,c1,c2,rows,rmse:Math.sqrt(best.sse/points.length),maxError:Math.max(...rows.map(p=>Math.abs(p.predicted-p.p))),constrained:u<0||w<0,minV:points[0].v,maxV:scale,type:s.resistanceType};
+}

@@ -14,3 +14,13 @@ Static, local-only PWA for fan PQ and filter/system pressure data. No backend, a
 Run numerical checks: `node calc.test.mjs`.
 
 Assumptions: consistent pressure definitions and air conditions, no mounting/system-effect correction. Filter multiplier is a hypothetical pressure ratio, not a dust loading prediction. No extrapolation in measured interpolation mode; quadratic extrapolation is explicitly marked. Zero-flow data is not invented.
+
+## FloTHERM Advanced resistance (v1.2)
+
+Fits input filter points to deltaP = c1*v + c2*v^2 with c1,c2 >= 0, zero intercept and approach velocity v=Q/frontal area. Independent of the chart interpolation mode, extra system resistance and dirty multiplier. At least two distinct positive velocities required.
+
+Uses Index=0, Re=rho*v*L/mu. Planar/Collapsed: A=2*L*c1/mu, B=2*c2/rho (dimensionless). Volume/Non-Collapsed: divide both by the modeled flow-direction thickness d in metres (units 1/m). L is the Reynolds reference length, distinct from d. Air properties should match curve measurement conditions.
+
+TXT and clipboard exports include all settings, fit range, units and RMSE. This is for manual setup in FloTHERM; no proprietary automatic import is claimed. Verify pressure drop in the model and use the measured speed range.
+
+Primary reference: Flomerics Ltd, Compact Models / Advanced Resistances, slides 18–22: https://www.resheji.com/d/uploads/Flotherm/AdvancedTraining_11_Compact_Models.pdf
