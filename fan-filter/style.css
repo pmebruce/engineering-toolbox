@@ -3,3 +3,5 @@
 textarea[hidden]{display:none}
 
 .chart-controls label{white-space:nowrap}.chart-controls select{flex:1;min-width:0;width:0}
+
+@media(max-width:760px){.chart svg g{font-size:22px}}
