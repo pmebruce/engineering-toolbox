@@ -24,3 +24,18 @@ assert.throws(()=>estimateSpeed({...calibrated,rpm2:'2000'},goal));assert.throws
 speed=estimateSpeed({...baseline,count:'2'},{...goal,limit:40+10*Math.log10(2)+50*Math.log10(.8),flowTarget:'160'});near(speed.ratio,.8);near(speed.totalFlow,160);
 speed=estimateSpeed(baseline,{...goal,distanceMode:'free',distance:'2',limit:Number(goal.limit)-20*Math.log10(2)});near(speed.ratio,.8);
 assert.equal(baseline.rpm,'2000');assert.equal(baseline.flow,'100');console.log('Passed: noise-limited speed, linear airflow, minimum speed, missing airflow/RPM, multi-fan/distance correction, calibration bounds, no baseline mutation.');
+
+const {estimateThermalWindow}=await import('./calc.mjs');
+const fan={count:'1',level:'52.3',distance:'1',flow:'11.3',rpm:'9360',speedModel:'law',minSpeed:'50'};
+const sound={basis:'LpA',limit:'45',distance:'1',distanceMode:'same'};
+const heat={inlet:'48.6',ambient:'53',component:'89.6',targetInlet:'50',limit:'100',exponent:'.5'};
+let window=estimateThermalWindow(fan,sound,heat);
+near(window.thermalRatio,.7007733514791121);near(window.thermalRpm,6559.23856984449);near(window.upper*9360,6687.685612066805);near(window.temperature,100);assert.equal(window.feasible,true);assert.ok(window.noise<45);near(window.totalFlow,11.3*window.ratio);
+window=estimateThermalWindow(fan,sound,{...heat,limit:'99'});assert.equal(window.feasible,false);assert.ok(window.temperature>99);
+window=estimateThermalWindow(fan,sound,{...heat,limit:'80'});assert.equal(window.thermalRatio,null);assert.equal(window.feasible,false);
+window=estimateThermalWindow({...fan,minSpeed:'80'},sound,heat);assert.equal(window.feasible,false);near(window.ratio,.8);
+window=estimateThermalWindow({...fan,minSpeed:'80'},{...sound,limit:'60'},heat);near(window.lower,.8);near(window.rpm,7488);assert.equal(window.feasible,true);
+window=estimateThermalWindow(fan,sound,{...heat,exponent:'1',limit:'110'});near(window.thermalRatio,41/60);
+window=estimateThermalWindow({...fan,speedModel:'calibrated',rpm2:'7488',level2:'48'},{...sound,limit:'50'},heat);near(window.lower,.8);assert.equal(window.feasible,true);
+assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,ambient:'40'}));assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,limit:'50'}));assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,exponent:'0'}));assert.throws(()=>estimateThermalWindow({...fan,rpm:''},sound,heat));assert.throws(()=>estimateThermalWindow({...fan,flow:'0'},sound,heat));
+console.log('Passed: thermal inversion, measured spreadsheet example, empty intersection, baseline overheating, operating/calibration limits, exponent and missing-input validation.');

@@ -21,3 +21,6 @@ label[hidden],#advanced-output[hidden]{display:none}.ab-values{display:grid;grid
 /* Highlight the primary constraint of each independent tool without resizing fields. */
 .goal-flow{color:#145c88}.goal-flow input{background:#e5f2ff;border-color:#6095bf;color:#123d63;box-shadow:inset 0 0 0 1px #6095bf}
 .goal-noise{color:#80530d}.goal-noise input{background:#fff1d8;border-color:#b8893c;color:#714a10;box-shadow:inset 0 0 0 1px #b8893c}
+
+
+.goal-temperature{color:#12664b}.goal-temperature input{background:#e3f4ec;border-color:#4f9478;color:#124d37;box-shadow:inset 0 0 0 1px #4f9478}.speed-metrics b{font-size:21px}.quick-result hr{border:0;border-top:1px solid #cbdde6;margin:18px 0}

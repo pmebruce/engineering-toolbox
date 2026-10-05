@@ -49,3 +49,21 @@ export function estimateSpeed(s,o){
  const needed=base.totalFlow===null?null:base.totalFlow===0?(Number(o.flowTarget)===0?0:Infinity):Number(o.flowTarget)/base.totalFlow;
  return {ratio,rpm:rpm===null?null:rpm*ratio,total,totalFlow,noisePass,flowPass,feasible:noisePass?(flowPass===null?null:flowPass):false,coefficient,lower,ceiling,requiredRatio:needed,margin:Number(o.limit)-total};
 }
+
+export function estimateThermalWindow(s,o,t){
+ const number=(v,label,min,max)=>{if(String(v??'').trim()===''||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error('請填有效的'+label);return Number(v);};
+ number(s.rpm,'基準轉速 RPM',1,1e6);number(s.flow,'基準工作點風量',.000001,1e7);
+ const inlet=number(t.inlet,'基準入口溫度',-100,500),ambient=number(t.ambient,'基準零件附近空氣溫度',-100,500),component=number(t.component,'基準零件溫度',-100,1000);
+ const targetInlet=number(t.targetInlet,'評估入口溫度',-100,500),limit=number(t.limit,'零件溫度上限',-100,1000),exponent=number(t.exponent,'對流指數 (0.1–1)',.1,1);
+ if(ambient<inlet||component<=ambient)throw Error('基準零件溫度須高於附近空氣溫度，附近空氣不可低於入口溫度。');
+ if(limit<=targetInlet)throw Error('零件溫度上限須高於評估入口溫度。');
+ const a=ambient-inlet,b=component-ambient;
+ const temperature=ratio=>targetInlet+a/ratio+b/ratio**exponent;
+ const acoustic=estimateSpeed(s,{...o,flowTarget:0});
+ let thermalRatio=null;
+ if(temperature(1)<=limit){let lo=0,hi=1;for(let i=0;i<80;i++){const mid=(lo+hi)/2;if(temperature(mid)>limit)lo=mid;else hi=mid;}thermalRatio=hi;}
+ const lower=thermalRatio===null?null:Math.max(thermalRatio,acoustic.lower);
+ const feasible=lower!==null&&lower<=acoustic.ceiling+1e-10;
+ const ratio=feasible?lower:acoustic.ratio;
+ return {acoustic,thermalRatio,thermalRpm:thermalRatio===null?null:thermalRatio*Number(s.rpm),lower,upper:acoustic.ceiling,feasible,ratio,rpm:ratio*Number(s.rpm),temperature:temperature(ratio),totalFlow:acoustic.totalFlow/acoustic.ratio*ratio,noise:acoustic.total+acoustic.coefficient*Math.log10(ratio/acoustic.ratio),inlet:targetInlet+a/ratio,limit,exponent};
+}
