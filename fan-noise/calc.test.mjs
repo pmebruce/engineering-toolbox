@@ -39,3 +39,18 @@ window=estimateThermalWindow(fan,sound,{...heat,exponent:'1',limit:'110'});near(
 window=estimateThermalWindow({...fan,speedModel:'calibrated',rpm2:'7488',level2:'48'},{...sound,limit:'50'},heat);near(window.lower,.8);assert.equal(window.feasible,true);
 assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,ambient:'40'}));assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,limit:'50'}));assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,exponent:'0'}));assert.throws(()=>estimateThermalWindow({...fan,rpm:''},sound,heat));assert.throws(()=>estimateThermalWindow({...fan,flow:'0'},sound,heat));
 console.log('Passed: thermal inversion, measured spreadsheet example, empty intersection, baseline overheating, operating/calibration limits, exponent and missing-input validation.');
+
+const {createFlowRelation}=await import('./calc.mjs');
+const measured={...fan,flowMode:'measured',flowPoints:'9360,11.3\n5000,2',flow:'999'};
+let relation=createFlowRelation(measured);near(relation.baseFlow,11.3);near(relation.flowAt(7180/9360),6.65);
+window=estimateThermalWindow(measured,{...sound,limit:'60'},heat);
+near(window.rpm,5000+(7.918738871713968-2)/9.3*4360);near(window.temperature,100);near(window.totalFlow,7.918738871713968);assert.equal(window.feasible,true);
+assert.equal(estimateThermalWindow(measured,sound,heat).feasible,false);
+window=estimateThermalWindow(measured,{...sound,limit:'60'},{...heat,limit:'200'});assert.equal(window.thermalAtDataFloor,true);near(window.rpm,5000);
+window=estimateThermalWindow(fan,{...sound,limit:'60'},{...heat,exponent:1,systemLossRatio:.5,componentLossRatio:.25});near(window.thermalRatio,.227);near(window.temperature,72.7);
+window=estimateThermalWindow(measured,{...sound,limit:'60'},{...heat,systemLossRatio:0,componentLossRatio:0});near(window.temperature,50);assert.equal(window.feasible,true);
+relation=createFlowRelation({...measured,rpm:7180});near(relation.baseFlow,6.65);
+assert.throws(()=>relation.flowAt(.1));assert.throws(()=>createFlowRelation({...measured,rpm:10000}));
+for(const points of ['5000 2','5000 2\n5000 3','5000 3\n9360 2','5000 0\n9360 11.3','RPM,CFM\n9360,11.3'])assert.throws(()=>createFlowRelation({...measured,flowPoints:points}));
+assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,systemLossRatio:''}));assert.throws(()=>estimateThermalWindow(fan,sound,{...heat,componentLossRatio:-1}));
+console.log('Passed: independent loss ratios, measured nonlinear flow interpolation/inversion, measured bounds, auto baseline, no extrapolation, malformed/nonmonotonic curve rejection.');

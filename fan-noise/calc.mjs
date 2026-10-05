@@ -52,18 +52,38 @@ export function estimateSpeed(s,o){
 
 export function estimateThermalWindow(s,o,t){
  const number=(v,label,min,max)=>{if(String(v??'').trim()===''||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error('請填有效的'+label);return Number(v);};
- number(s.rpm,'基準轉速 RPM',1,1e6);number(s.flow,'基準工作點風量',.000001,1e7);
+ number(s.rpm,'基準轉速 RPM',1,1e6);const relation=createFlowRelation(s);
  const inlet=number(t.inlet,'基準入口溫度',-100,500),ambient=number(t.ambient,'基準零件附近空氣溫度',-100,500),component=number(t.component,'基準零件溫度',-100,1000);
  const targetInlet=number(t.targetInlet,'評估入口溫度',-100,500),limit=number(t.limit,'零件溫度上限',-100,1000),exponent=number(t.exponent,'對流指數 (0.1–1)',.1,1);
  if(ambient<inlet||component<=ambient)throw Error('基準零件溫度須高於附近空氣溫度，附近空氣不可低於入口溫度。');
  if(limit<=targetInlet)throw Error('零件溫度上限須高於評估入口溫度。');
- const a=ambient-inlet,b=component-ambient;
- const temperature=ratio=>targetInlet+a/ratio+b/ratio**exponent;
- const acoustic=estimateSpeed(s,{...o,flowTarget:0});
+ const systemLossRatio=number(t.systemLossRatio??1,'整機損耗比 (0–100)',0,100),componentLossRatio=number(t.componentLossRatio??1,'零件損耗比 (0–100)',0,100);
+ const a=(ambient-inlet)*systemLossRatio,b=(component-ambient)*componentLossRatio;
+ const temperature=ratio=>{const f=relation.flowAt(ratio)/relation.baseFlow;return targetInlet+a/f+b/f**exponent;};
+ const acoustic=estimateSpeed({...s,flow:relation.baseFlow},{...o,flowTarget:0});
  let thermalRatio=null;
- if(temperature(1)<=limit){let lo=0,hi=1;for(let i=0;i<80;i++){const mid=(lo+hi)/2;if(temperature(mid)>limit)lo=mid;else hi=mid;}thermalRatio=hi;}
- const lower=thermalRatio===null?null:Math.max(thermalRatio,acoustic.lower);
+ if(temperature(1)<=limit){if(relation.minRatio>0&&temperature(relation.minRatio)<=limit)thermalRatio=relation.minRatio;else{let lo=relation.minRatio,hi=1;for(let i=0;i<80;i++){const mid=(lo+hi)/2;if(temperature(mid)>limit)lo=mid;else hi=mid;}thermalRatio=hi;}}
+ const lower=thermalRatio===null?null:Math.max(thermalRatio,acoustic.lower,relation.minRatio);
  const feasible=lower!==null&&lower<=acoustic.ceiling+1e-10;
- const ratio=feasible?lower:acoustic.ratio;
- return {acoustic,thermalRatio,thermalRpm:thermalRatio===null?null:thermalRatio*Number(s.rpm),lower,upper:acoustic.ceiling,feasible,ratio,rpm:ratio*Number(s.rpm),temperature:temperature(ratio),totalFlow:acoustic.totalFlow/acoustic.ratio*ratio,noise:acoustic.total+acoustic.coefficient*Math.log10(ratio/acoustic.ratio),inlet:targetInlet+a/ratio,limit,exponent};
+ const ratio=feasible?lower:Math.max(acoustic.ratio,relation.minRatio);
+ return {relation,systemLossRatio,componentLossRatio,flowRatio:relation.flowAt(ratio)/relation.baseFlow,thermalAtDataFloor:relation.minRatio>0&&thermalRatio===relation.minRatio,acoustic,thermalRatio,thermalRpm:thermalRatio===null?null:thermalRatio*Number(s.rpm),lower,upper:acoustic.ceiling,feasible,ratio,rpm:ratio*Number(s.rpm),temperature:temperature(ratio),totalFlow:relation.flowAt(ratio)*Number(s.count),noise:acoustic.total+acoustic.coefficient*Math.log10(ratio/acoustic.ratio),inlet:targetInlet+a/(relation.flowAt(ratio)/relation.baseFlow),limit,exponent};
+}
+
+
+export function createFlowRelation(s){
+ const rpm=Number(s.rpm);
+ if(!Number.isFinite(rpm)||rpm<=0)throw Error('請填有效的基準 RPM。');
+ if(!s.flowMode||s.flowMode==='linear'){
+  const baseFlow=Number(s.flow);
+  if(!Number.isFinite(baseFlow)||baseFlow<=0)throw Error('請填大於 0 的基準工作點風量。');
+  return {baseFlow,minRatio:0,flowAt:r=>baseFlow*r,points:[]};
+ }
+ if(s.flowMode!=='measured')throw Error('未知的風量模式。');
+ const lines=String(s.flowPoints??'').trim().split(/\n+/).filter(x=>x.trim());
+ if(lines.length<2||lines.length>100)throw Error('實際曲線請輸入 2–100 列 RPM、單顆工作點風量。');
+ const points=lines.map((line,i)=>{const cells=line.trim().split(/[\s,，;；]+/);if(cells.length!==2||cells.some(x=>!/^\+?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/.test(x)))throw Error('曲線第 '+(i+1)+' 列需為兩個數值：RPM、風量。');const [n,q]=cells.map(Number);if(!Number.isFinite(n)||!Number.isFinite(q)||n<=0||q<=0)throw Error('曲線 RPM 與風量都須大於 0。');return {n,q};}).sort((a,b)=>a.n-b.n);
+ for(let i=1;i<points.length;i++){if(points[i].n===points[i-1].n)throw Error('曲線不可有重複 RPM。');if(points[i].q<points[i-1].q)throw Error('風量須隨 RPM 不減少；非單調曲線請先確認失速或量測資料，不能以單一下限求解。');}
+ if(rpm<points[0].n||rpm>points.at(-1).n)throw Error('基準 RPM 須落在實際曲線範圍內。');
+ const flowAt=r=>{const n=r*rpm;if(n<points[0].n-1e-7||n>points.at(-1).n+1e-7)throw Error('轉速超出風量資料範圍，不外插。');if(n<=points[0].n)return points[0].q;for(let i=1;i<points.length;i++)if(n<=points[i].n){const a=points[i-1],b=points[i];return a.q+(b.q-a.q)*(n-a.n)/(b.n-a.n);}return points.at(-1).q;};
+ return {baseFlow:flowAt(1),minRatio:points[0].n/rpm,flowAt,points};
 }
