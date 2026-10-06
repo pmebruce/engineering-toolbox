@@ -82,7 +82,7 @@ let speedTable=[];
 
 function updateSpeed(){
  for(const id of ['rpm','flow','noise','air','temp','rise','base-rise'])$('compare-'+id).textContent='—';
- $('comparison-status').textContent='請完成有效資料，預估列會自動更新。';
+ $('comparison-status').textContent='請完成有效資料，預估欄會自動更新。';
  $('speed-calibration').hidden=$('speed-model').value!=='calibrated';
  $('speed-flowData').hidden=$('speed-flowMode').value!=='measured';$('speed-flow').readOnly=$('speed-flowMode').value==='measured';$('speed-flowChart').innerHTML='';
  try{
@@ -93,7 +93,7 @@ function updateSpeed(){
   const v=estimateThermalWindow(scenario,target,thermal),unit=$('speed-flowUnit').value;
   const comparison={rpm:fmt(v.rpm,0),flow:fmt(v.totalFlow/Number(scenario.count))+' '+unit,noise:fmt(v.noise-10*Math.log10(Number(scenario.count))),air:fmt(v.inlet,1),temp:fmt(v.temperature,1),rise:fmt(v.temperature-v.inlet,1),'base-rise':fmt(Number(thermal.component)-Number(thermal.ambient),1)};
   for(const [id,value] of Object.entries(comparison))$('compare-'+id).textContent=value;
-  $('comparison-status').textContent=v.feasible?'預估列：依最低可行轉速計算；聲壓為單顆在評估距離的數值。':'預估列：無可行區間，以下僅為範圍內試算，不代表達標。';
+  $('comparison-status').textContent=v.feasible?'預估欄：依最低可行轉速計算；聲壓為單顆在評估距離的數值。':'預估欄：無可行區間，以下僅為範圍內試算，不代表達標。';
   const status=v.feasible?'噪音與零件溫度皆初估達標 · 有可行區間':v.thermalRatio===null?'基準轉速仍超溫 · 降轉範圍內無解':'溫度／最低運轉要求高於噪音上限 · 無可行區間';
   const rpm=ratio=>fmt(ratio*Number(scenario.rpm),0)+' RPM';
   $('speed-output').innerHTML=`<h3>轉速限制結果</h3><p class="${v.feasible?'pass':'fail'}">${status}</p><div class="speed-metrics"><div><span>${v.thermalAtDataFloor?'資料範圍內最低已驗證轉速':'零件溫度要求的最低轉速'}</span><b>${v.thermalRatio===null?'超出基準轉速':rpm(v.thermalRatio)}</b><p>${v.thermalRatio===null?'需改善散熱或重新建立基準':fmt(v.thermalRatio*100,1)+'%'}</p></div><div><span>噪音上限允許的最高轉速</span><b>${rpm(v.upper)}</b><p>${fmt(v.upper*100,1)}%</p></div><div><span>可行轉速區間 · 已含最低比例、風量及噪音資料範圍</span><b>${v.feasible?rpm(v.lower)+'–'+rpm(v.upper):'無交集'}</b></div></div><hr><h3>${v.feasible?'建議最低可行轉速':'範圍內試算 · 非可行建議'}：${fmt(v.rpm,0)} RPM</h3><div class="speed-metrics"><div><span>零件溫度初估</span><b>${fmt(v.temperature,1)} °C</b><p>上限 ${esc(thermal.limit)} °C</p></div><div><span>合成聲壓初估</span><b>${fmt(v.noise)} dBA</b><p>@ ${esc(target.distance)} m</p></div><div><span>總風量初估</span><b>${fmt(v.totalFlow)} ${esc(unit)}</b><p>零件附近空氣 ${fmt(v.inlet,1)} °C</p></div></div><p class="note">整機損耗比 ${fmt(v.systemLossRatio,4)}，零件損耗比 ${fmt(v.componentLossRatio,4)}；${scenario.flowMode==='measured'?'使用實際風量資料內插':'風量按轉速正比初估'}，風量比 ${fmt(v.flowRatio,4)}。${v.thermalAtDataFloor?'更低轉速缺乏風量資料，不向下外插。':''}${v.feasible?'區間最低轉速使噪音較低，實務應保留溫度裕量。':'目前條件無法同時滿足，需改善散熱、噪音或重新建立基準資料。'}${v.acoustic.ceiling<Math.max(v.acoustic.lower,v.relation.minRatio)?'噪音要求已超出最低轉速／風量或噪音資料範圍。':''}所有結果為初估，需量測確認。</p>`;
