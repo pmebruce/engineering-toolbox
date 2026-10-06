@@ -53,7 +53,7 @@ export function estimateSpeed(s,o){
 export function estimateThermalWindow(s,o,t){
  const number=(v,label,min,max)=>{if(String(v??'').trim()===''||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error('請填有效的'+label);return Number(v);};
  number(s.rpm,'基準轉速 RPM',1,1e6);const relation=createFlowRelation(s);
- const inlet=number(t.inlet,'基準入口溫度',-100,500),ambient=number(t.ambient,'基準零件附近空氣溫度',-100,500),component=number(t.component,'基準零件溫度',-100,1000);
+ const inlet=number(t.inlet,'基準入口溫度',-100,500),ambient=t.position===undefined?number(t.ambient,'基準零件附近空氣溫度',-100,500):localAirTemperature(t.inlet,t.outlet,t.position),component=number(t.component,'基準零件溫度',-100,1000);
  const targetInlet=number(t.targetInlet,'評估入口溫度',-100,500),limit=number(t.limit,'零件溫度上限',-100,1000),exponent=number(t.exponent,'對流指數 (0.1–1)',.1,1);
  if(ambient<inlet||component<=ambient)throw Error('基準零件溫度須高於附近空氣溫度，附近空氣不可低於入口溫度。');
  if(limit<=targetInlet)throw Error('零件溫度上限須高於評估入口溫度。');
@@ -66,7 +66,7 @@ export function estimateThermalWindow(s,o,t){
  const lower=thermalRatio===null?null:Math.max(thermalRatio,acoustic.lower,relation.minRatio);
  const feasible=lower!==null&&lower<=acoustic.ceiling+1e-10;
  const ratio=feasible?lower:Math.max(acoustic.ratio,relation.minRatio);
- return {relation,systemLossRatio,componentLossRatio,flowRatio:relation.flowAt(ratio)/relation.baseFlow,thermalAtDataFloor:relation.minRatio>0&&thermalRatio===relation.minRatio,acoustic,thermalRatio,thermalRpm:thermalRatio===null?null:thermalRatio*Number(s.rpm),lower,upper:acoustic.ceiling,feasible,ratio,rpm:ratio*Number(s.rpm),temperature:temperature(ratio),totalFlow:relation.flowAt(ratio)*Number(s.count),noise:acoustic.total+acoustic.coefficient*Math.log10(ratio/acoustic.ratio),inlet:targetInlet+a/(relation.flowAt(ratio)/relation.baseFlow),limit,exponent};
+ return {baselineAmbient:ambient,outlet:t.outlet===undefined?null:targetInlet+(Number(t.outlet)-inlet)*systemLossRatio/(relation.flowAt(ratio)/relation.baseFlow),relation,systemLossRatio,componentLossRatio,flowRatio:relation.flowAt(ratio)/relation.baseFlow,thermalAtDataFloor:relation.minRatio>0&&thermalRatio===relation.minRatio,acoustic,thermalRatio,thermalRpm:thermalRatio===null?null:thermalRatio*Number(s.rpm),lower,upper:acoustic.ceiling,feasible,ratio,rpm:ratio*Number(s.rpm),temperature:temperature(ratio),totalFlow:relation.flowAt(ratio)*Number(s.count),noise:acoustic.total+acoustic.coefficient*Math.log10(ratio/acoustic.ratio),inlet:targetInlet+a/(relation.flowAt(ratio)/relation.baseFlow),limit,exponent};
 }
 
 
@@ -87,3 +87,5 @@ export function createFlowRelation(s){
  const flowAt=r=>{const n=r*rpm;if(n<points[0].n-1e-7||n>points.at(-1).n+1e-7)throw Error('轉速超出風量資料範圍，不外插。');if(n<=points[0].n)return points[0].q;for(let i=1;i<points.length;i++)if(n<=points[i].n){const a=points[i-1],b=points[i];return a.q+(b.q-a.q)*(n-a.n)/(b.n-a.n);}return points.at(-1).q;};
  return {baseFlow:flowAt(1),minRatio:points[0].n/rpm,flowAt,points};
 }
+
+export function localAirTemperature(inlet,outlet,position){const valid=(v,label,min,max)=>{if(String(v??"").trim()===""||!Number.isFinite(Number(v))||Number(v)<min||Number(v)>max)throw Error("請填有效的"+label);return Number(v);};const ti=valid(inlet,"基準入口溫度",-100,500),to=valid(outlet,"基準出口溫度",-100,500),x=valid(position,"位置係數 x (0–1)",0,1);if(to<ti)throw Error("基準出口空氣溫度不可低於入口。");return ti+x*(to-ti);}
