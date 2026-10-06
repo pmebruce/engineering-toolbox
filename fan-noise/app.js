@@ -1,4 +1,4 @@
-import {evaluateScenario,combine,parseLevels,distanceLevel,estimateSpeed,estimateThermalWindow,createFlowRelation} from './calc.mjs?v=1.8';
+import {evaluateScenario,combine,parseLevels,distanceLevel,estimateSpeed,estimateThermalWindow,createFlowRelation} from './calc.mjs?v=1.9';
 const $=id=>document.getElementById(id),keys=['basis','flowTarget','limit','distance','distanceMode'];
 const sources={vendor:'廠商資料',measured:'實測',estimate:'推估'};
 const demo=[{name:'單顆高速 · 示範',count:'1',level:'32',distance:'1',flow:'110',rpm:'2200',source:'estimate'},{name:'雙顆低速 · 示範',count:'2',level:'25',distance:'1',flow:'55',rpm:'1400',source:'estimate'},{name:'四顆低速 · 示範',count:'4',level:'22',distance:'1',flow:'28',rpm:'1000',source:'estimate'}];
