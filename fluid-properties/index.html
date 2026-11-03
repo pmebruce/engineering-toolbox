@@ -86,7 +86,7 @@ function model(){
  try{const l=limits(s.fluid,s.conc);$('temperature').min=l.min;$('temperature').max=l.max;$('temp-slider').min=Math.ceil(l.min*10)/10;$('temp-slider').max=l.max;$('temp-slider').value=Number.isFinite(s.temp)?s.temp:25;
  $('range-label').textContent='單點查詢範圍 '+fmt(l.min)+'～'+l.max+'°C';
  $('freeze-note').hidden=l.freeze===null;
- $('freeze-note').textContent='預估冰點 '+fmt(l.freeze)+'°C。接近冰點時請保留操作裕量，勿用作結冰／融冰計算。';
+ $('freeze-note').textContent=l.freeze===null?'':'預估冰點 '+fmt(l.freeze)+'°C。接近冰點時請保留操作裕量，勿用作結冰／融冰計算。';
  }catch(e){$('range-label').textContent=e.message;$('freeze-note').hidden=true}
 }
 function renderPoint(){
