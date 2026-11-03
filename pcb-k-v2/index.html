@@ -4,7 +4,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PCB 導熱率 V2｜公開資料版</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.row,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}.row{margin:8px 0;padding:10px;background:#f1f6fa;border-radius:10px;align-items:end}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:14px;border-radius:5px;background:#d8e6ed;margin:4px 0 10px}.bar span{height:100%;display:block;border-radius:5px;background:#006668}.bar:first-of-type span{background:#9b471c}button:disabled{opacity:.5;cursor:default}
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:14px;border-radius:5px;background:#d8e6ed;margin:4px 0 10px}.bar span{height:100%;display:block;border-radius:5px;background:#006668}.bar:first-of-type span{background:#9b471c}button:disabled{opacity:.5;cursor:default}
+.stack-hint{font-size:14px;color:#436073;margin:14px 0 6px}.stack-scroll{max-width:100%;overflow-x:auto;border:1px solid #cadbe5;border-radius:10px}.stack-scroll:focus-visible{outline:2px solid #006668;outline-offset:2px}.layer-table{width:100%;min-width:610px;border-collapse:separate;border-spacing:0;font-size:14px}.layer-table th,.layer-table td{padding:5px 7px;text-align:left;border-bottom:1px solid #dce6ed}.layer-table thead th{background:#e3edf3;white-space:nowrap;line-height:1.3}.layer-table tbody tr:nth-child(even){background:#f2f7fa}.layer-table tbody tr:last-child>*{border-bottom:0}.layer-table th:first-child{position:sticky;left:0;background:#e3edf3;white-space:nowrap}.layer-table input{min-width:64px;font-size:16px}.layer-table select{min-width:140px;font-size:16px}.layer-table button,.layer-kind{white-space:nowrap}.layer-kind{color:#345568;font-weight:700}[data-kind="cu"] .layer-kind{color:#88421e}.unused{color:#526a7c}
 </style>
 <main>
 <a href="../">← 工程工具箱</a>
@@ -13,7 +14,12 @@
 <section><h2>1. 材料與堆疊</h2>
 <p class="note">範例為合成堆疊。銅厚輸入成品厚度，1 oz 約 35 µm。介質厚度請勿包含銅厚。</p>
 <div class="grid"><label>銅箔 k（W/m·K）<input id="cu" type="number" step="any" min="0.000001" value="391" required></label><label>銅層空白處介質 k（W/m·K）<input id="matrix" type="number" step="any" min="0.000001" value="0.4" required></label></div>
-<div id="layers"></div>
+<p class="stack-hint" id="stack-hint">由上往下排列。窄螢幕可在表格內左右滑動查看所有欄位。</p>
+<div class="stack-scroll" tabindex="0" role="region" aria-label="可編輯的 PCB 板層表格" aria-describedby="stack-hint">
+<table class="layer-table" aria-label="PCB 板層堆疊">
+<thead><tr><th scope="col">層序</th><th scope="col">類型</th><th scope="col">厚度<br>µm</th><th scope="col">覆銅率<br>%</th><th scope="col">介質 k<br>W/m·K</th><th scope="col">走線拓撲</th><th scope="col">操作</th></tr></thead>
+<tbody id="layers"></tbody>
+</table></div>
 <div class="actions"><button type="button" id="addCu">＋銅層</button><button type="button" id="addD" class="secondary">＋介質層</button><button type="button" id="example" class="secondary">重設四層範例</button></div>
 <p class="note">「連通於 X／Y」代表沿該方向有理想連續銅路。覆銅率相同，走線方向不同，面內 k 可能差很多。拓撲未知時顯示串聯至並聯的模型區間。</p></section>
 <section><h2>2. 散熱孔區</h2><p class="note">以局部等效區面積計算，例如元件散熱焊盤下方。只計從區域上表面貫穿至下表面的通孔。</p>
@@ -48,21 +54,37 @@ const form = byId('model');
 const layers = byId('layers');
 const modes = ['拓撲未知','雙向連續銅路','沿 X 走線','沿 Y 走線'];
 let exportRows = [];
+function numberLayers() {
+  Array.from(layers.rows).forEach((row, i) => {
+    row.cells[0].textContent = i + 1;
+    row.querySelectorAll('[data-label]').forEach(control => {
+      control.setAttribute('aria-label', '第 ' + (i + 1) + ' 層 ' + control.dataset.label);
+    });
+  });
+}
 function addLayer(kind, thickness, coverage = 0, mode = 0) {
-  const row = document.createElement('div');
-  row.className = 'row';
+  const row = document.createElement('tr');
   row.dataset.kind = kind;
+  const copper = kind === 'cu';
   const number = (label, name, value, min, max = '') =>
-    '<label>' + label + '<input data-field="' + name + '" type="number" step="any" min="' + min + '" ' + max + ' value="' + value + '" required></label>';
-  row.innerHTML = number(kind === 'cu' ? '銅層厚度（µm）' : '介質厚度（µm）','t',thickness,0.000001) +
-    (kind === 'cu' ? number('覆銅率（%）','f',coverage,0,'max="100"') +
-      '<label>走線拓撲<select data-field="mode">' + modes.map((label, i) => '<option value="' + i + '">' + label + '</option>').join('') + '</select></label>'
-      : number('介質 k（W/m·K）','k',coverage,0.000001)) +
-    '<button type="button" class="secondary">刪除此層</button>';
+    '<input data-label="' + label + '" data-field="' + name +
+    '" type="number" step="any" min="' + min + '" ' + max + ' value="' + value + '" required>';
+  const cell = content => '<td>' + content + '</td>';
+  const unused = '<span class="unused" aria-label="不適用">—</span>';
+  row.innerHTML = '<th scope="row"></th>' +
+    cell('<span class="layer-kind">' + (copper ? '銅層' : '介質') + '</span>') +
+    cell(number('厚度（µm）','t',thickness,0.000001)) +
+    cell(copper ? number('覆銅率（%）','f',coverage,0,'max="100"') : unused) +
+    cell(copper ? unused : number('介質 k（W/m·K）','k',coverage,0.000001)) +
+    cell(copper ? '<select data-label="走線拓撲" data-field="mode">' +
+      modes.map((label, i) => '<option value="' + i + '">' + label + '</option>').join('') +
+      '</select>' : unused) +
+    cell('<button type="button" class="secondary" data-label="刪除">刪除</button>');
   const select = row.querySelector('select');
   if (select) select.value = mode;
-  row.querySelector('button').onclick = () => { row.remove(); render(); };
+  row.querySelector('button').onclick = () => { row.remove(); numberLayers(); render(); };
   layers.append(row);
+  numberLayers();
 }
 function example() {
   form.reset();
