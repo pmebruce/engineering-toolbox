@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCB 導熱率 V2｜公開資料版</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.row,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}.row{margin:8px 0;padding:10px;background:#f1f6fa;border-radius:10px;align-items:end}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:14px;border-radius:5px;background:#d8e6ed;margin:4px 0 10px}.bar span{height:100%;display:block;border-radius:5px;background:#006668}.bar:first-of-type span{background:#9b471c}button:disabled{opacity:.5;cursor:default}
+</style>
+<main>
+<a href="../">← 工程工具箱</a>
+<header><small>公開資料版 · 獨立模型</small><h1>PCB 導熱率 V2</h1><p>由板層堆疊估算 kx、ky、kz，再比較局部散熱孔區的穿板熱阻。</p></header>
+<form id="model">
+<section><h2>1. 材料與堆疊</h2>
+<p class="note">範例為合成堆疊。銅厚輸入成品厚度，1 oz 約 35 µm。介質厚度請勿包含銅厚。</p>
+<div class="grid"><label>銅箔 k（W/m·K）<input id="cu" type="number" step="any" min="0.000001" value="391" required></label><label>銅層空白處介質 k（W/m·K）<input id="matrix" type="number" step="any" min="0.000001" value="0.4" required></label></div>
+<div id="layers"></div>
+<div class="actions"><button type="button" id="addCu">＋銅層</button><button type="button" id="addD" class="secondary">＋介質層</button><button type="button" id="example" class="secondary">重設四層範例</button></div>
+<p class="note">「連通於 X／Y」代表沿該方向有理想連續銅路。覆銅率相同，走線方向不同，面內 k 可能差很多。拓撲未知時顯示串聯至並聯的模型區間。</p></section>
+<section><h2>2. 散熱孔區</h2><p class="note">以局部等效區面積計算，例如元件散熱焊盤下方。只計從區域上表面貫穿至下表面的通孔。</p>
+<div class="grid">
+<label>區域 X（mm）<input id="width" type="number" step="any" min="0.000001" value="8" required></label>
+<label>區域 Y（mm）<input id="height" type="number" step="any" min="0.000001" value="8" required></label>
+<label>通孔數量<input id="count" type="number" step="1" min="0" max="1000000" value="16" required></label>
+<label>成品內徑（mm）<input id="bore" type="number" step="any" min="0.000001" value="0.30" required></label>
+<label>孔壁銅厚（µm）<input id="plate" type="number" step="any" min="0.000001" value="25" required></label>
+<label>孔壁銅 k（W/m·K）<input id="wall" type="number" step="any" min="0.000001" value="391" required></label>
+<label>孔芯 k（W/m·K）<input id="fill" type="number" step="any" min="0" value="0.026" required></label>
+<label>穿板熱流（W）<input id="power" type="number" step="any" min="0" value="2" required></label>
+</div><p class="note">孔芯 0.026 為室溫空氣的工程近似，可依填孔材料修改。穿板熱流是實際流經這個區域的熱量。</p></section>
+</form>
+<section><h2>3. 等效材料與熱阻</h2><div id="output" aria-live="polite"></div><div class="actions"><button id="csv" class="secondary" type="button">匯出輸入與結果 CSV</button></div>
+<p class="note">FloTHERM／XT 建模時，X、Y 對應板面，Z 為板厚方向。整板可用無孔結果作初估。局部散熱孔區可使用含孔 kz，面內值沿用未計孔壁的堆疊估算。若已建出孔壁實體，請避免重複計入。</p></section>
+<section><details open><summary>公式、適用條件與公開來源</summary>
+<ul><li>每層銅佔比 f。並聯 k = f·kCu + (1−f)·kd。串聯 k = 1 / [f/kCu + (1−f)/kd]。連續雙向銅路使用並聯近似。單向銅路沿走線取並聯，垂直走線取串聯。</li>
+<li>板面按各層厚度加權平均。Z 向先以面積並聯近似每一銅層，再以厚度串聯各層。此模型假定層間能以均化後的截面交換熱流。</li>
+<li>孔區採並聯熱導。從原板面積扣除孔外徑占用面積，再加上環形孔壁與孔芯的熱導。G = [kz·A剩餘 + k孔壁·A孔壁 + k孔芯·A孔芯]/板厚。R = 1/G，ΔT = Q·R。</li>
+<li>孔區結果假定兩端近似等溫且所有孔壁都參與導熱。局部熱擴散、焊料與介面熱阻、盲埋孔、熱焊盤細頸與外部對流需另建模型。覆銅率與方向由使用者提供。</li>
+<li><a href="https://www.isola-group.com/pcb-laminates-prepreg/370hr-laminate-prepreg/">Isola 370HR 公開規格</a>提供 0.4 W/m·K 典型值。範例暫將其視為各向同性。</li>
+<li><a href="https://alloys.copper.org/alloy/C11000">Copper Development Association C11000</a>提供室溫銅材參考值，換算約 391 W/m·K。電鍍銅實際值可自行填寫。</li>
+<li><a href="https://www.electronics-cooling.com/2010/09/creating-pcb-thermal-conductivity-maps-using-image-processing/">Creating PCB Thermal Conductivity Maps Using Image Processing</a>公開作者文章，說明方向性串並聯均化。</li>
+<li><a href="https://www.ti.com/lit/SLVA959">Texas Instruments SLVA959 §2.5</a>提供通孔環形截面熱阻的計算依據。</li></ul>
+<p class="note">此頁的範例、程式與模型獨立製作。輸入只在目前瀏覽器頁面運算，匯出由瀏覽器本機產生。</p></details></section>
+</main>
+<script>
+'use strict';
+const byId = id => document.getElementById(id);
+const form = byId('model');
+const layers = byId('layers');
+const modes = ['拓撲未知','雙向連續銅路','沿 X 走線','沿 Y 走線'];
+let exportRows = [];
+function addLayer(kind, thickness, coverage = 0, mode = 0) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.dataset.kind = kind;
+  const number = (label, name, value, min, max = '') =>
+    '<label>' + label + '<input data-field="' + name + '" type="number" step="any" min="' + min + '" ' + max + ' value="' + value + '" required></label>';
+  row.innerHTML = number(kind === 'cu' ? '銅層厚度（µm）' : '介質厚度（µm）','t',thickness,0.000001) +
+    (kind === 'cu' ? number('覆銅率（%）','f',coverage,0,'max="100"') +
+      '<label>走線拓撲<select data-field="mode">' + modes.map((label, i) => '<option value="' + i + '">' + label + '</option>').join('') + '</select></label>'
+      : number('介質 k（W/m·K）','k',coverage,0.000001)) +
+    '<button type="button" class="secondary">刪除此層</button>';
+  const select = row.querySelector('select');
+  if (select) select.value = mode;
+  row.querySelector('button').onclick = () => { row.remove(); render(); };
+  layers.append(row);
+}
+function example() {
+  form.reset();
+  layers.replaceChildren();
+  addLayer('cu',35,35,0);
+  addLayer('d',180,0.4);
+  addLayer('cu',35,90,1);
+  addLayer('d',1100,0.4);
+  addLayer('cu',35,90,1);
+  addLayer('d',180,0.4);
+  addLayer('cu',35,35,0);
+  render();
+}
+function solve(stack, copper, matrix, via) {
+  let t = 0, rz = 0;
+  const sum = [0,0,0,0];
+  for (const layer of stack) {
+    const {thickness, k, f, mode} = layer;
+    t += thickness;
+    if (layer.kind === 'd') {
+      rz += thickness / k;
+      sum.forEach((v,i) => { sum[i] = v + thickness*k; });
+      continue;
+    }
+    const p = copper*f + matrix*(1-f);
+    const s = 1/(f/copper+(1-f)/matrix);
+    rz += thickness/p;
+    const bounds = [
+      [Math.min(s,p),Math.max(s,p),Math.min(s,p),Math.max(s,p)],
+      [p,p,p,p],[p,p,s,s],[s,s,p,p]
+    ][mode];
+    bounds.forEach((v,i) => { sum[i] += v*thickness; });
+  }
+  const kz = t/rz;
+  const area = via.width*via.height*1e-6;
+  const inner = via.bore*0.001/2;
+  const plating = via.plate*1e-6;
+  const core = Math.PI*inner**2;
+  const wall = Math.PI*plating*(2*inner+plating);
+  const removed = via.count*(core+wall);
+  if (removed > area || (via.count && (inner+plating)*2000 > Math.min(via.width,via.height))) {
+    throw Error('通孔外徑或總截面超過區域，請調整尺寸或孔數。');
+  }
+  const kv = (kz*(area-removed)+via.count*(via.wall*wall+via.fill*core))/area;
+  const r0 = t*1e-6/(kz*area);
+  const rv = t*1e-6/(kv*area);
+  return {t, xy:sum.map(v => v/t), kz, kv, r0, rv, rise:via.power*rv, single:t*1e-6/(via.wall*wall+via.fill*core), fraction:removed/area};
+}
+const fmt = n => Number(n.toPrecision(5)).toString();
+function visuals(stack, result, via) {
+  let y = 25;
+  const available = 96;
+  const minimum = Math.min(3, available / (2*stack.length));
+  const board = stack.map(layer => {
+    const height = minimum + (available-minimum*stack.length)*layer.thickness/result.t;
+    const band = '<rect x="26" y="'+y+'" width="238" height="'+height+'" fill="'+
+      (layer.kind==='cu'?'#b65923':'#b9d9df')+'"/>';
+    y += height;
+    return band;
+  }).join('');
+  const hole = via.count ? '<rect x="126" y="25" width="38" height="96" fill="#a44c1e" stroke="#633015" stroke-width="2"/>'+
+    '<rect x="135" y="25" width="20" height="96" fill="#f7fbfd"/>'+
+    '<path d="M130 8v128m30-128v128" stroke="#793417" stroke-width="2" marker-end="url(#flow)"/>' : '';
+  const maxR = Math.max(result.r0,result.rv);
+  const bar = (label,r) => '<div>'+label+' <strong>'+fmt(r)+' K/W</strong></div><div class="bar" aria-hidden="true"><span style="width:'+(100*r/maxR)+'%"></span></div>';
+  return '<div class="visuals"><figure><svg viewBox="0 0 290 150" role="img" aria-label="PCB 板層、孔壁與穿板熱流示意">'+
+    '<defs><marker id="flow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0l6 3-6 3z" fill="#793417"/></marker></defs>'+
+    board+'<rect x="26" y="25" width="238" height="96" fill="none" stroke="#22465b" stroke-width="2"/>'+hole+
+    '<path d="M220 8v128" stroke="#793417" stroke-width="2" marker-end="url(#flow)"/></svg>'+
+    '<figcaption><strong>板層剖面</strong> · 橘色為銅層或孔壁，藍色為介質。箭頭表示 Z 向熱流，厚度與孔數為示意。</figcaption></figure>'+
+    '<figure><strong>同一區域的穿板熱阻</strong>'+bar('無孔',result.r0)+bar('輸入孔數 '+via.count,result.rv)+
+    '<figcaption>兩組使用同一面積與堆疊。熱阻越低，相同穿板熱流下的溫差越小。</figcaption></figure></div>';
+}
+function render() {
+  const output = byId('output');
+  const value = id => byId(id).valueAsNumber;
+  const stack = Array.from(layers.children, row => {
+    const field = name => Number(row.querySelector('[data-field="'+name+'"]')?.value);
+    return {kind:row.dataset.kind, thickness:field('t'), k:field('k'), f:field('f')/100, mode:field('mode')};
+  });
+  try {
+    if (!form.checkValidity() || !stack.length) throw Error('請至少加入一層，並填寫所有有效數值。');
+    const via = Object.fromEntries(['width','height','count','bore','plate','wall','fill','power'].map(id => [id,value(id)]));
+    const r = solve(stack,value('cu'),value('matrix'),via);
+    if (![r.t,...r.xy,r.kz,r.kv,r.r0,r.rv,r.rise,r.single,r.fraction].every(Number.isFinite)) throw Error('數值超出可計算範圍。');
+    const range = (a,b) => fmt(a) === fmt(b) ? fmt(a) : fmt(a)+'–'+fmt(b);
+    const metrics = [
+      ['板厚',fmt(r.t/1000),'mm'],['kx',range(...r.xy.slice(0,2)),'W/m·K'],
+      ['ky',range(...r.xy.slice(2)), 'W/m·K'],['kz · 無孔',fmt(r.kz),'W/m·K'],
+      ['kz · 散熱孔區',fmt(r.kv),'W/m·K'],['區域熱阻 · 無孔',fmt(r.r0),'K/W'],
+      ['區域熱阻 · 含孔',fmt(r.rv),'K/W'],['穿板溫差 · 含孔',fmt(r.rise),'°C'],
+      ['單孔理想熱阻',via.count ? fmt(r.single) : '—','K/W'],['通孔投影占比',fmt(r.fraction*100),'%']
+    ];
+    output.innerHTML = '<div class="stack" aria-label="由左至右為由上到下的板層，橘色為銅層">' +
+      stack.map(l => '<span style="flex:'+l.thickness+';background:'+(l.kind==='cu'?'#a64d20':'#88b9c1')+'"></span>').join('') +
+      '</div><div class="results">'+metrics.map(([label,n,unit]) => '<div class="metric">'+label+'<b>'+n+'</b>'+unit+'</div>').join('')+'</div>'+visuals(stack,r,via);
+    exportRows = [['項目','數值','單位'],['銅箔 k',value('cu'),'W/m·K'],['銅層空白處介質 k',value('matrix'),'W/m·K'],
+      ...Object.entries(via).map(([id,n]) => [byId(id).parentElement.textContent.trim(),n,'']), ...metrics,
+      [],['層序','類型','厚度 µm','覆銅 %','介質 k W/m·K','拓撲'],
+      ...stack.map((l,i)=>[i+1,l.kind,l.thickness,l.kind==='cu'?l.f*100:'',l.kind==='d'?l.k:'',modes[l.mode]??''])];
+    byId('csv').disabled = false;
+  } catch (error) {
+    const note = document.createElement('p');
+    note.className = 'error';
+    note.textContent = error.message;
+    output.replaceChildren(note);
+    byId('csv').disabled = true;
+  }
+}
+form.addEventListener('input',render);
+form.addEventListener('submit',event => event.preventDefault());
+byId('addCu').onclick = () => { addLayer('cu',35,50); render(); };
+byId('addD').onclick = () => { addLayer('d',200,valueOfMatrix()); render(); };
+function valueOfMatrix() {
+  const input = byId('matrix');
+  return input.checkValidity() ? input.valueAsNumber : 0.4;
+}
+byId('example').onclick = example;
+byId('csv').onclick = () => {
+  const csv = exportRows.map(row => row.map(value => '"'+String(value).replaceAll('"','""')+'"').join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pcb-thermal-v2.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+};
+example();
+</script>
+</html>
