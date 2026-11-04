@@ -6,10 +6,16 @@
 .gr-preset{margin:12px 0;padding:12px;border:1px solid #cbdce5;border-radius:10px;background:#f2f8fa}.gr-preset summary{margin-bottom:8px}
 .environment-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:10px;margin:12px 0 16px}.environment-guide figure{margin:0;min-width:0;padding:10px;background:#f3f8fa;border:1px solid #ccdce5;border-radius:10px}.environment-guide svg{display:block;width:100%;max-width:360px;height:auto;margin:auto}.environment-guide figcaption{font-size:14px;color:#426074}
 input[type=date],input[type=time]{min-width:0;max-width:100%}
+.quick-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.quick-nav a{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;border:1px solid #9cbec8;border-radius:8px;background:#e7f4f4;font-weight:700;text-decoration:none}
+.quick-nav a:focus-visible{outline:3px solid #006568;outline-offset:2px}
+#inputs,#calculation{scroll-margin-top:12px}
+.case-summary{background:#e7f4f4;border-radius:10px;padding:10px 12px;margin:12px 0;font-weight:700;overflow-wrap:anywhere}
 </style></head><body><main>
 <a href="../">← 工程工具箱</a>
 <header><h1>機櫃日照熱負載</h1><p>估算六面外殼的穩態均溫、傳入櫃內的淨熱量，以及日照額外增加的熱負載。</p></header>
-<form id="inputs">
+<nav class="quick-nav" aria-label="工具頁面捷徑"><a href="#calculation">↓ 跳到結果</a></nav>
+<form id="inputs" tabindex="-1">
 <section><h2>1. 機櫃與環境</h2><div class="environment-guide">
 <figure><svg viewBox="0 0 320 310" role="img" aria-label="機櫃立體圖，W 是正面寬度，D 是側面深度，H 是垂直高度">
 <path d="M100 53h104v212H100z" fill="#bde1e9" stroke="#17384d" stroke-width="3"/><path d="M100 53l49-30h104l-49 30z" fill="#d9edf5" stroke="#17384d" stroke-width="3"/><path d="M204 53l49-30v212l-49 30z" fill="#83b8cd" stroke="#17384d" stroke-width="3"/>
@@ -68,7 +74,8 @@ input[type=date],input[type=time]{min-width:0;max-width:100%}
 <p class="note"><strong>MIL-STD-810H Method 505.7 Procedure I</strong> 的日照峰值為 1,120 W/m²，A1／A2 的外氣峰值為 49／43°C，與日照峰值不同時。請使用各評估時刻配對的外氣與輻照度。<a href="https://quicksearch.dla.mil/qsDocdetails.aspx?ident_number=35978">DLA 文件</a></p>
 <p class="note">此工具做穩態預估。試驗參考值請依受照面逐面輸入，試驗循環與判定依正式計畫執行。</p></details><div id="faces" class="faces"></div></section>
 </form>
-<section><h2>3. 均溫與進入櫃內的熱量</h2><p id="error" class="error" role="alert" hidden></p><div id="results">
+<section id="calculation" tabindex="-1"><h2>3. 均溫與進入櫃內的熱量</h2><nav class="quick-nav" aria-label="結果區捷徑"><a href="#inputs">↑ 回到輸入</a></nav><p id="error" class="error" role="alert" hidden></p><div id="results">
+<p id="case-summary" class="case-summary"></p>
 <div id="metrics" class="metrics" aria-live="polite"></div>
 <div id="net" class="net" aria-label="機櫃六面展開圖"></div>
 <div class="scroll" tabindex="0" role="region" aria-label="逐面結果，可橫向滑動"><table><thead><tr><th scope="col">面</th><th scope="col">面積 m²</th><th scope="col">外表面 °C</th><th scope="col">內表面 °C</th><th scope="col">吸收日照 W</th><th scope="col">淨入熱 W</th><th scope="col">日照增量 W</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -116,6 +123,11 @@ function surface(env, absorbed, insulationR) {
   const flux = (outer-env.inside)/resistance;
   return {outer,inner:env.inside+flux/env.hi,flux};
 }
+const solarFields = faces.flatMap((_,i)=>['g'+i,'a'+i]);
+let solarPreset;
+function captureSolarPreset(label, ids) {
+  solarPreset = {label, inputs:ids.map(id=>[id,get(id).valueAsNumber])};
+}
 function render() {
   const direct = get('insMode').value==='resistance';
   get('insK').disabled = direct;
@@ -147,6 +159,15 @@ function render() {
     const baseline=surface(env,0,insulationR);
     return {...face,area,sun,alpha,insulation,insulationR,...current,absorbed:sun*alpha*area,net:current.flux*area,extra:(current.flux-baseline.flux)*area};
   });
+  const activeFaces = rows.filter(row=>row.sun>0).length;
+  const solarLabel = solarPreset?.inputs.every(([id,value])=>get(id).valueAsNumber===value)
+    ? solarPreset.label : activeFaces ? '逐面輸入 · '+activeFaces+' 面受照' : '無日照';
+  const thicknesses = rows.map(row=>row.insulation);
+  const minThickness = Math.min(...thicknesses), maxThickness = Math.max(...thicknesses);
+  const insulationLabel = direct ? '逐面輸入 R″' : minThickness===maxThickness
+    ? (maxThickness===0 ? '無絕熱棉' : '棉厚 '+maxThickness+' mm')
+    : '棉厚 '+minThickness+'–'+maxThickness+' mm';
+  get('case-summary').textContent = '外氣 '+env.out+' °C · '+solarLabel+' · '+insulationLabel;
   const sum = key => rows.reduce((acc,row)=>acc+row[key],0);
   const hottest = rows.reduce((a,b)=>a.outer>=b.outer?a:b);
   const average=rows.reduce((acc,row)=>acc+row.outer*row.area,0)/sum('area');
@@ -200,6 +221,7 @@ get('sun-apply').onclick = () => {
   const {elev,az} = solarPosition(n('lat'),n('lon'),get('sun-date').value,get('sun-time').value,n('zone'));
   const values = elev<=0 ? faces.map(()=>0) : siteIrradiance(elev,az,n('front'),n('dni'),n('dhi'),n('albedo'));
   values.forEach((value,i)=>{get('g'+i).value=Number(value.toFixed(2));});
+  captureSolarPreset('地點與時間日照', solarFields.filter(id=>id.startsWith('g')));
   get('sun-status').textContent = '太陽高度 '+elev.toFixed(1)+'° · 方位 '+az.toFixed(1)+'°。'+(elev<=0?'太陽在地平線下。':'')+'已套用：'+values.map((value,i)=>faces[i].name+' '+value.toFixed(1)).join(' · ')+' W/m²。';
   render();
 };
@@ -222,6 +244,7 @@ get('gr-apply').onclick = () => {
     get('g'+i).value = lit ? 753 : 0;
     if (lit) get('a'+i).value = Number(effective.toPrecision(12));
   });
+  captureSolarPreset('GR-487 三面日照', ['out','rad',...solarFields]);
   get('gr-status').textContent = '已套用 '+ambient+'°C、三面 753 W/m²，照射面 Aₑ = '+Number(effective.toPrecision(6))+'。';
   render();
 };
