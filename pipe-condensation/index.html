@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>液冷管路防結露</title><style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#173347;font:16px/1.55 system-ui,sans-serif}main{max-width:760px;margin:auto;padding:18px 14px 40px}a{color:#006578}header,section{margin:12px 0;padding:18px;border:1px solid #ccdce5;border-radius:14px;background:white}header{background:#12344b;color:white}h1,h2,p{margin:0 0 9px}h1{font-size:clamp(25px,5vw,35px)}h2{font-size:20px}label{display:block;font-weight:600;font-size:14px}input{width:100%;min-width:0;padding:8px;border:1px solid #8da8b9;border-radius:8px;min-height:44px;font:inherit;font-size:16px;color:inherit}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:10px}.tile{background:#e6f3f3;padding:10px;border-radius:10px}.tile b{display:block;font-size:22px;overflow-wrap:anywhere}.note{color:#405e70}.bad{color:#9d2520}.good{color:#006568}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 4px;border-bottom:1px solid #dbe6ec;text-align:left}summary{cursor:pointer;font-weight:700}svg{display:block;width:100%;max-width:460px;margin:0 auto 12px}footer{text-align:center;color:#405e70}
+</style></head><body><main><a href="../">← 工程工具箱</a><header><h1>液冷管路防結露</h1><p>比較裸管、包棉段與接頭的露點裕度，反算液溫或棉厚。</p></header>
+<form id="inputs"><section><h2>1. 環境與管路</h2>
+<svg viewBox="0 0 340 98" role="img" aria-label="裸管、包棉段與未包棉接頭示意"><rect x="24" y="36" width="292" height="18" rx="9" fill="#78c8da" stroke="#173347" stroke-width="2"/><rect x="108" y="24" width="113" height="42" rx="6" fill="#ebc591" stroke="#904713" stroke-width="2"/><rect x="252" y="30" width="35" height="30" rx="4" fill="#637e91" stroke="#173347" stroke-width="2"/><g text-anchor="middle" fill="#173347" font-size="16" font-weight="700"><text x="61" y="88">裸管</text><text x="164" y="88">包棉段</text><text x="270" y="88">接頭</text></g></svg>
+<div class="grid">
+<label>環境空氣（°C）<input id="air" type="number" min="0" max="60" step="any" value="30" required></label>
+<label>相對濕度（%RH）<input id="rh" type="number" min="1" max="100" step="any" value="75" required></label>
+<label>管內液溫（°C）<input id="liquid" type="number" min="-40" max="90" step="any" value="18" required></label>
+<label>管外徑（mm）<input id="diam" type="number" min="1" max="2000" step="any" value="25" required></label>
+<label>管身保溫厚（mm）<input id="pipe" type="number" min="0" max="300" step="any" value="13" required></label>
+<label>接頭等效外徑（mm）<input id="jointDiam" type="number" min="1" max="2000" step="any" value="35" required></label>
+<label>接頭保溫厚（mm）<input id="joint" type="number" min="0" max="300" step="any" value="0" required></label>
+<label>保溫材料 k（W/m·K）<input id="k" type="number" min="0.001" max="10" step="any" value="0.035" required></label>
+<label>外側等效 h（W/m²·K）<input id="h" type="number" min="0.1" max="1000" step="any" value="8" required></label>
+<label>目標露點裕度（°C）<input id="margin" type="number" min="0" max="20" step="any" value="2" required></label>
+</div><p class="note">棉厚填 0 代表未包覆。h 可填含對流與線性化輻射的等效值。預設數值是示例。</p></section></form>
+<section><h2>2. 結露風險</h2><p id="error" class="bad" role="alert" hidden>請檢查所有欄位是否填妥且在允許範圍內。</p><div id="results"><div id="summary" class="grid" aria-live="polite"></div>
+<table><thead><tr><th scope="col">位置</th><th scope="col">表面 °C</th><th scope="col">露點裕度 °C</th><th scope="col">判斷</th></tr></thead><tbody id="rows"></tbody></table><p class="note">裸管列供比較。系統判斷以你設定的管身和接頭包覆厚度為準。</p></div></section>
+<section id="reverse"><h2>3. 反算液溫與棉厚</h2><div id="inverse" class="grid"></div><p class="note">最低液溫使用目前包覆條件。所需棉厚則固定目前液溫，讓各段達到目標裕度。棉厚反算上限 300 mm，選材時請向上取可用規格。</p></section>
+<section><details><summary>模型與限制</summary><p>露點採 Magnus 近似。以穩態圓筒熱阻估算棉外表面，內邊界取液溫，忽略管壁、內側膜熱阻和軸向導熱。接頭視為等效圓筒。環境應填管路周圍實際溫濕度。</p><p>模型未計入接縫熱橋、局部漏包、吸水或水氣穿透。實物仍須檢查保溫接縫及防潮層完整性。表面低於 0°C 時，結霜需另外評估。</p></details></section><footer>液冷管路防結露 · v1.0</footer></main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const keys=['air','rh','liquid','diam','jointDiam','pipe','joint','k','h','margin'];
+const fmt=x=>x.toFixed(1);
+function dewPoint(air,rh) {
+  const a=17.62,b=243.12;
+  const g=Math.log(rh/100)+a*air/(b+air);
+  return b*g/(a-g);
+}
+function fraction(diameter,thickness,k,h) {
+  const radius=diameter/2000;
+  const outer=radius+thickness/1000;
+  return 1/(1+h*outer*Math.log(outer/radius)/k);
+}
+function surface(air,liquid,f) {return air+(liquid-air)*f;}
+function neededThickness(diameter,env,target) {
+  const at=thickness=>surface(env.air,env.liquid,fraction(diameter,thickness,env.k,env.h));
+  if(at(0)>=target)return 0;
+  if(at(300)<target)return null;
+  let lo=0,hi=300;
+  for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(at(mid)>=target)hi=mid;else lo=mid;}
+  return hi;
+}
+function render() {
+  const valid=get('inputs').checkValidity();
+  get('error').hidden=valid;
+  get('results').hidden=!valid;
+  get('reverse').hidden=!valid;
+  if(!valid)return;
+  const env=Object.fromEntries(keys.map(key=>[key,get(key).valueAsNumber]));
+  const {air,rh,liquid,diam,jointDiam,pipe,joint,k,h,margin}=env;
+  const dew=dewPoint(air,rh),target=dew+margin;
+  const fp=fraction(diam,pipe,k,h),fj=fraction(jointDiam,joint,k,h);
+  const values=[['裸管參考',liquid],['管身',surface(air,liquid,fp)],['接頭',surface(air,liquid,fj)]];
+  const cold=values[1][1]<=values[2][1]?values[1]:values[2];
+  const tile=([name,value])=>'<div class="tile">'+name+'<b>'+value+'</b></div>';
+  get('summary').innerHTML=[['環境露點',fmt(dew)+' °C'],['最冷表面',cold[0]+' '+fmt(cold[1])+' °C'],['最小裕度',fmt(cold[1]-dew)+' °C']].map(tile).join('');
+  get('rows').innerHTML=values.map(([name,t])=>{
+    const gap=t-dew;
+    const state=gap<=1e-9?'達露點或更低':gap<margin?'裕度不足':'達目標';
+    return '<tr><th scope="row">'+name+'</th><td>'+fmt(t)+'</td><td>'+fmt(gap)+'</td><td class="'+(gap<=1e-9||gap<margin?'bad':'good')+'">'+state+'</td></tr>';
+  }).join('');
+  const minLiquid=Math.max(air+(target-air)/fp,air+(target-air)/fj);
+  const thick=d=>{const result=neededThickness(d,env,target);return result===null?'300 mm 內無解':(Math.ceil(result*10)/10).toFixed(1)+' mm';};
+  get('inverse').innerHTML=[['最低液溫',(Math.ceil(minLiquid*10)/10).toFixed(1)+' °C'],['管身最小棉厚',thick(diam)],['接頭最小棉厚',thick(jointDiam)]].map(tile).join('');
+}
+get('inputs').addEventListener('input',render);
+get('inputs').addEventListener('submit',event=>event.preventDefault());
+render();
+</script></body></html>
