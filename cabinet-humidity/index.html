@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>機櫃濕度工具</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#172e40;font:17px/1.55 system-ui,sans-serif}main{max-width:850px;margin:auto;padding:20px 14px 48px}h1{font-size:clamp(27px,5vw,38px);line-height:1.2}h2{font-size:21px;margin:0 0 10px}h3{font-size:18px;margin:0 0 10px}p{margin:8px 0 14px}a{color:#005b70;font-weight:700}section,fieldset{min-width:0;background:#fff;border:1px solid #b7cbd6;border-radius:14px;padding:16px;margin:14px 0}fieldset{background:#f2f7f9;margin:0 0 12px}legend{font-weight:800;padding:0 5px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-weight:700}input{display:block;width:100%;min-height:44px;margin-top:4px;border:1px solid #829eae;border-radius:8px;padding:8px;font:inherit;color:inherit;background:#fff}.result{border-left:5px solid #007086}.warn{color:#8e2e14;font-weight:800}.ok{color:#095a49;font-weight:800}dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:8px 0}dd{margin:0;font-weight:800;text-align:right}small{display:block;color:#415d70}svg{width:100%;max-height:145px;display:block}.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));gap:10px}.phases fieldset{margin:0}.phases .grid{grid-template-columns:1fr}@media(max-width:390px){.grid{grid-template-columns:1fr}}
+</style>
+<main>
+<a href="../">← 工程工具箱</a>
+<h1 id="title"></h1>
+<div id="app"></div>
+<p><a href="https://handbook.ashrae.org/Handbooks/F21/SI/F21_Ch01/F21_Ch01_si.aspx">計算參考 · ASHRAE 濕空氣性質</a></p>
+</main>
+<script>
+const mode=new URLSearchParams(location.search).get('mode')==='dehumidify'?'dry':'stop';
+const isDry=mode==='dry';
+const title=isDry?'機櫃除濕量估算':'戶外機櫃停機結露';
+document.title=title;
+document.querySelector('#title').textContent=title;
+const app=document.querySelector('#app');
+const field=(id,label,value,min,max)=>`<label>${label}<input id="${id}" type="number" step="any" value="${value}" min="${min}" max="${max}" required></label>`;
+const phases=[['白天運轉',34,55,30],['夜間停機',24,85,20],['清晨重啟',26,80,21]];
+const diagram=isDry
+ ? '<svg viewBox="0 0 400 120" role="img" aria-label="外氣經漏風或開門進入機櫃，除濕器移除水氣"><rect x="150" y="10" width="234" height="100" rx="10" fill="#d9edf1" stroke="#173b50" stroke-width="3"/><path d="M85 58h92m-16-12 16 12-16 12" fill="none" stroke="#005b70" stroke-width="6"/><g fill="#173b50" font-size="23" font-weight="700" text-anchor="middle"><text x="44" y="65">外氣</text><text x="274" y="52">櫃內水氣</text><text x="274" y="84">↓ 除濕排出</text></g></svg>'
+ : '<svg viewBox="0 0 400 120" role="img" aria-label="比較白天運轉、夜間停機和清晨重啟三個階段"><path d="M55 44h290" stroke="#005b70" stroke-width="5"/><g fill="#007086"><circle cx="65" cy="44" r="13"/><circle cx="200" cy="44" r="13"/><circle cx="335" cy="44" r="13"/></g><g fill="#173b50" font-size="21" font-weight="700" text-anchor="middle"><text x="65" y="89">白天運轉</text><text x="200" y="89">夜間停機</text><text x="335" y="89">清晨重啟</text></g></svg>';
+app.innerHTML=diagram+(isDry?`
+<p>以櫃內目標露點為基準，估算維持條件的除濕量，以及開門後或啟動時的短期負荷。</p>
+<form><section><h2>環境與目標</h2><div class="grid">
+${field('outT','外氣溫度（°C）',30,0,60)}
+${field('outRh','外氣相對濕度（%）',75,1,100)}
+${field('volume','櫃內有效空氣容積（m³）',1.5,0.001,100000)}
+${field('pressure','當地大氣壓力（kPa）',101.325,40,110)}
+${field('inT','櫃內空氣溫度（°C）',28,0,60)}
+${field('inRh','櫃內起始相對濕度（%）',70,1,100)}
+${field('target','目標露點（°C）',15,0,60)}
+${field('hours','希望恢復時間（h）',1,0.01,1000)}
+</div></section><section><h2>進氣與開門</h2><div class="grid">
+${field('flow','連續外氣量（m³/h）',3,0,100000)}
+${field('events','開門次數（次/h）',1,0,1000)}
+${field('fraction','每次開門等效換氣（% 櫃內容積）',50,0,10000)}
+${field('internal','櫃內其他產濕（g/h）',0,0,100000)}
+</div><small>連續外氣量填漏風與新風的合計，不含內循環。開門換氣請依實測或設計情境填寫。</small></section></form>`:`
+<p>每個階段分別輸入櫃內空氣溫濕度與最冷內表面溫度。若有多個測點，填最冷的門板、底板或熱橋位置。</p>
+<form><section><h2>階段條件</h2><div class="phases">${phases.map(([name,t,rh,s],i)=>`<fieldset><legend>${name}</legend><div class="grid">${field('t'+i,'櫃內空氣（°C）',t,0,60)}${field('rh'+i,'櫃內相對濕度（%）',rh,1,100)}${field('s'+i,'最冷內表面（°C）',s,0,100)}</div></fieldset>`).join('')}</div>
+<p>${field('margin','目標露點裕度（°C）',2,0,20)}</p>
+<small>已有表面溫度時可手動帶入。<a href="../cabinet-solar/index.html">機櫃日照熱負載工具</a>可供白天穩態情境參考，請選內表面溫度。夜間與重啟可用量測或暫態模擬的最低值。</small>
+</section></form>`)+`<section class="result"><h2>估算結果</h2><div id="results" aria-live="polite"></div></section><section><h2>計算範圍</h2><p>${isDry?'依外氣與目標露點的含濕比差估算，假設空氣充分混合、溫度與壓力固定。維持量採小時平均，單次開門後的實際露點尖峰會受開門時間及混合影響。選型應比對目標溫濕度下的除濕能力。':'這是三個輸入狀態的比較。裕度＝最冷內表面溫度－櫃內露點。加熱器啟動參考以壁面溫度門檻表示，實際瓦數需依櫃體熱阻、熱容量及感測器位置另算。'} 濕空氣計算採液態水飽和蒸氣壓近似。</p></section>`;
+const val=id=>document.getElementById(id).valueAsNumber;
+const sat=t=>0.61094*Math.exp(17.625*t/(243.04+t));
+const dew=e=>{const x=Math.log(e/0.61094);return 243.04*x/(17.625-x);};
+const ratio=(e,p)=>0.621945*e/(p-e);
+const density=(t,e,p)=>(p-e)*1000/(287.05*(t+273.15));
+const fmt=n=>n.toLocaleString('zh-TW',{minimumFractionDigits:1,maximumFractionDigits:2});
+const row=(label,value)=>`<dt>${label}</dt><dd>${value}</dd>`;
+const dryCalc=(outT,outRh,inT,inRh,target,p,v,flow,events,fraction,internal,hours)=>{
+ const eo=sat(outT)*outRh/100,ei=sat(inT)*inRh/100,et=sat(target);
+ const delta=Math.max(0,ratio(eo,p)-ratio(et,p))*1000*density(outT,eo,p);
+ const leak=flow*delta;
+ const door=v*fraction/100*delta;
+ const initial=v*density(inT,ei,p)*Math.max(0,ratio(ei,p)-ratio(et,p))*1000;
+ const steady=leak+door*events+internal;
+ return {leak,door,initial,steady,recovery:steady+initial/hours,doorRecovery:steady+door/hours};
+};
+const stopCalc=(t,rh,s,margin)=>{
+ const d=dew(sat(t)*rh/100);
+ return {d,gap:s-d,threshold:d+margin,deficit:Math.max(0,d+margin-s)};
+};
+const form=app.querySelector('form');
+const result=document.querySelector('#results');
+function render(){
+ if([...form.querySelectorAll('input')].some(input=>!input.validity.valid)){result.textContent='請填寫所有欄位，並確認數值在允許範圍內。';return;}
+ if(isDry){
+  if(val('target')>val('inT')){result.textContent='目標露點需小於或等於櫃內空氣溫度。';return;}
+  const q=dryCalc(...['outT','outRh','inT','inRh','target','pressure','volume','flow','events','fraction','internal','hours'].map(val));
+  result.innerHTML=`<h3>維持目標露點約 ${fmt(q.steady)} g/h</h3><dl>${row('連續進氣',fmt(q.leak)+' g/h')}${row('開門平均負荷',fmt(q.door*val('events'))+' g/h')}${row('單次開門設計水氣負荷',fmt(q.door)+' g')}${row('初次乾燥需移除',fmt(q.initial)+' g')}</dl><h3>恢復時所需能力</h3><dl>${row('初次乾燥＋日常負荷',fmt(q.recovery)+' g/h')}${row('額外一次開門＋日常負荷',fmt(q.doorRecovery)+' g/h')}</dl><small>開門設計負荷以換氣量乘含濕比差，假設開門時櫃內已達目標。若單次換氣量超過一個櫃體容積，此值代表開門期間的累計負荷。</small>`;
+ }else{
+  const values=phases.map((_,i)=>stopCalc(val('t'+i),val('rh'+i),val('s'+i),val('margin')));
+  const worst=values.indexOf(values.reduce((a,b)=>a.gap<=b.gap?a:b));
+  result.innerHTML=`<p><strong>最低裕度出現在${phases[worst][0]}（${fmt(values[worst].gap)} °C）</strong></p><div class="phases">${values.map(({d,gap,threshold,deficit},i)=>`<fieldset><legend>${phases[i][0]}</legend><p class="${gap<=1e-8||deficit>1e-8?'warn':'ok'}">${gap<=1e-8?'達露點或低於露點':deficit>1e-8?'未達目標裕度':'達到目標裕度'}</p><dl>${row('櫃內露點',fmt(d)+' °C')}${row('壁面裕度',fmt(gap)+' °C')}${row('加熱啟動參考',fmt(threshold)+' °C')}${row('壁面尚需升溫',fmt(deficit)+' °C')}</dl></fieldset>`).join('')}</div>`;
+ }
+}
+form.addEventListener('input',render);
+render();
+</script></html>
