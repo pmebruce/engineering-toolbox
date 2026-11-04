@@ -1,4 +1,4 @@
-const CACHE='engineering-toolbox-github-v10';
+const CACHE='engineering-toolbox-github-v11';
 const SHELL=['./','./index.html','./style.css','./app.js','./manifest.webmanifest','./toolbox-icon-180-v3.png','./toolbox-icon-192-v3.png','./toolbox-icon-512-v3.png','./favicon-v3.ico','./pcb-k-v2/index.html'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('engineering-toolbox-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -7,7 +7,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  event.respondWith(fetch(request).catch(async () => {
+  event.respondWith(fetch(request, request.mode === 'navigate' ? {cache:'no-cache'} : undefined).catch(async () => {
     const cache = await caches.open(CACHE);
     const exact = await cache.match(request);
     if (exact) return exact;
