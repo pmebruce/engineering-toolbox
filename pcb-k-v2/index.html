@@ -7,6 +7,7 @@
 *{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:22px;border:1px solid #879daa;border-radius:6px;background:#e3ebf0;margin:5px 0 12px}.bar span{height:100%;display:block;border-radius:5px;background:#005666}.bar-base span{background:#963c13}button:disabled{opacity:.5;cursor:default}
 .stack-hint{font-size:14px;color:#436073;margin:14px 0 6px}.stack-scroll{max-width:100%;overflow-x:auto;border:1px solid #cadbe5;border-radius:10px}.stack-scroll:focus-visible{outline:2px solid #006668;outline-offset:2px}.layer-table{width:100%;min-width:610px;border-collapse:separate;border-spacing:0;font-size:14px}.layer-table th,.layer-table td{padding:5px 7px;text-align:left;border-bottom:1px solid #dce6ed}.layer-table thead th{background:#e3edf3;white-space:nowrap;line-height:1.3}.layer-table tbody tr:nth-child(even){background:#f2f7fa}.layer-table tbody tr:last-child>*{border-bottom:0}.layer-table th:first-child{position:sticky;left:0;background:#e3edf3;white-space:nowrap}.layer-table input{min-width:64px;font-size:16px}.layer-table select{min-width:140px;font-size:16px}.layer-table button,.layer-kind{white-space:nowrap}.layer-kind{color:#345568;font-weight:700}[data-kind="cu"] .layer-kind{color:#88421e}.unused{color:#526a7c}
 .bar-label{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px .6rem}.bar-label strong{white-space:nowrap}
+.via-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:10px;margin:12px 0 18px}.via-guide figure{margin:0;min-width:0;padding:10px;border:1px solid #cadbe5;border-radius:10px;background:#f4f9fb}.via-guide svg{display:block;width:100%;max-width:360px;height:auto;margin:auto}.via-guide figcaption{font-size:14px;color:#29485b}.guide-label{fill:#17384d;font-size:16px;font-weight:700}.via-input::before{content:attr(data-guide);color:#005c63;font-weight:700;margin-inline-end:.3em}
 </style>
 <main>
 <a href="../">← 工程工具箱</a>
@@ -24,15 +25,33 @@
 <div class="actions"><button type="button" id="addCu">＋銅層</button><button type="button" id="addD" class="secondary">＋介質層</button><button type="button" id="example" class="secondary">重設四層範例</button></div>
 <p class="note">「連通於 X／Y」代表沿該方向有理想連續銅路。覆銅率相同，走線方向不同，面內 k 可能差很多。拓撲未知時顯示串聯至並聯的模型區間。</p></section>
 <section><h2>2. 散熱孔區</h2><p class="note">以局部等效區面積計算，例如元件散熱焊盤下方。只計從區域上表面貫穿至下表面的通孔。</p>
+<div class="via-guide">
+<figure><svg viewBox="0 0 320 196" role="img" aria-label="局部散熱孔區立體圖。1 是 X 邊長，2 是 Y 邊長，3 是貫穿孔，8 是往下的穿板熱流。">
+<defs><marker id="guide-arrow" viewBox="0 0 10 10" markerWidth="6" markerHeight="6" refX="9" refY="5" orient="auto-start-reverse"><path d="M0 0l10 5-10 5z" fill="#17384d"/></marker></defs>
+<path d="M55 126h166l53-63v25l-53 63H55z" fill="#75b7d2" stroke="#17384d" stroke-width="2"/>
+<path d="M55 126h166l53-63H108z" fill="#efd1a4" stroke="#17384d" stroke-width="2"/>
+<path d="M55 136h166l53-63m-53 53v25" fill="none" stroke="#a44112" stroke-width="2"/>
+<g fill="#fff" stroke="#873710" stroke-width="2.5"><ellipse cx="91" cy="112" rx="7" ry="4"/><ellipse cx="125" cy="112" rx="7" ry="4"/><ellipse cx="159" cy="112" rx="7" ry="4"/><ellipse cx="193" cy="112" rx="7" ry="4"/><ellipse cx="102" cy="99" rx="7" ry="4"/><ellipse cx="136" cy="99" rx="7" ry="4"/><ellipse cx="170" cy="99" rx="7" ry="4"/><ellipse cx="204" cy="99" rx="7" ry="4"/><ellipse cx="113" cy="86" rx="7" ry="4"/><ellipse cx="147" cy="86" rx="7" ry="4"/><ellipse cx="181" cy="86" rx="7" ry="4"/><ellipse cx="215" cy="86" rx="7" ry="4"/><ellipse cx="124" cy="73" rx="7" ry="4"/><ellipse cx="158" cy="73" rx="7" ry="4"/><ellipse cx="192" cy="73" rx="7" ry="4"/><ellipse cx="226" cy="73" rx="7" ry="4"/></g>
+<g fill="none" stroke="#17384d" stroke-width="2" marker-start="url(#guide-arrow)" marker-end="url(#guide-arrow)"><path d="M57 169h162"/><path d="M231 141l55-65"/></g>
+<path d="M76 49v58" stroke="#17384d" stroke-width="4" marker-end="url(#guide-arrow)"/>
+<g class="guide-label"><text x="123" y="191">① X</text><text x="266" y="137">② Y</text><text x="88" y="44">③ 通孔</text><text x="13" y="39">⑧ 熱流</text></g>
+<path d="M122 47l14 24" fill="none" stroke="#17384d" stroke-width="1.5"/>
+</svg><figcaption><strong>局部孔區</strong>　①② 填同一塊局部區域的邊長，③ 只數該區內的貫穿孔，⑧ 填實際走這條穿板路徑的熱量。</figcaption></figure>
+<figure><svg viewBox="0 0 320 196" role="img" aria-label="單孔俯視放大圖。4 是成品內徑，5 是單側孔壁厚度，6 是銅環材料，7 是孔芯材料。">
+<circle cx="138" cy="98" r="61" fill="#c36b37" stroke="#873710" stroke-width="2"/><circle cx="138" cy="98" r="40" fill="#e1f2f7" stroke="#17384d" stroke-width="2"/>
+<g fill="none" stroke="#17384d" stroke-width="2"><path d="M100 98h76" marker-start="url(#guide-arrow)" marker-end="url(#guide-arrow)"/><path d="M178 98h21m-21-8v16m21-16v16m0-8h20"/><path d="M201 55h-16l-11 13M204 145h-24l-24-24"/></g>
+<g class="guide-label"><text x="102" y="89">④ 內徑</text><text x="225" y="104">⑤ 銅厚</text><text x="205" y="57">⑥ 銅 k</text><text x="208" y="150">⑦ 孔芯 k</text></g>
+</svg><figcaption><strong>單孔俯視放大</strong>　④ 填電鍍後的內徑，⑤ 填單側鍍銅厚度。⑥ 填孔壁銅的 k，⑦ 填孔內空氣或填料的 k。</figcaption></figure>
+</div>
 <div class="grid">
-<label>區域 X（mm）<input id="width" type="number" step="any" min="0.000001" value="8" required></label>
-<label>區域 Y（mm）<input id="height" type="number" step="any" min="0.000001" value="8" required></label>
-<label>通孔數量<input id="count" type="number" step="1" min="0" max="1000000" value="16" required></label>
-<label>成品內徑（mm）<input id="bore" type="number" step="any" min="0.000001" value="0.30" required></label>
-<label>孔壁銅厚（µm）<input id="plate" type="number" step="any" min="0.000001" value="25" required></label>
-<label>孔壁銅 k（W/m·K）<input id="wall" type="number" step="any" min="0.000001" value="391" required></label>
-<label>孔芯 k（W/m·K）<input id="fill" type="number" step="any" min="0" value="0.026" required></label>
-<label>穿板熱流（W）<input id="power" type="number" step="any" min="0" value="2" required></label>
+<label class="via-input" data-guide="①">區域 X（mm）<input id="width" type="number" step="any" min="0.000001" value="8" required></label>
+<label class="via-input" data-guide="②">區域 Y（mm）<input id="height" type="number" step="any" min="0.000001" value="8" required></label>
+<label class="via-input" data-guide="③">通孔數量<input id="count" type="number" step="1" min="0" max="1000000" value="16" required></label>
+<label class="via-input" data-guide="④">成品內徑（mm）<input id="bore" type="number" step="any" min="0.000001" value="0.30" required></label>
+<label class="via-input" data-guide="⑤">孔壁銅厚（µm）<input id="plate" type="number" step="any" min="0.000001" value="25" required></label>
+<label class="via-input" data-guide="⑥">孔壁銅 k（W/m·K）<input id="wall" type="number" step="any" min="0.000001" value="391" required></label>
+<label class="via-input" data-guide="⑦">孔芯 k（W/m·K）<input id="fill" type="number" step="any" min="0" value="0.026" required></label>
+<label class="via-input" data-guide="⑧">穿板熱流（W）<input id="power" type="number" step="any" min="0" value="2" required></label>
 </div><p class="note">孔芯 0.026 為室溫空氣的工程近似，可依填孔材料修改。穿板熱流是實際流經這個區域的熱量。</p></section>
 </form>
 <section><h2>3. 等效材料與熱阻</h2><div id="output" aria-live="polite"></div><div class="actions"><button id="csv" class="secondary" type="button">匯出輸入與結果 CSV</button></div>
