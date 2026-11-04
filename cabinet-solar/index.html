@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>機櫃日照熱負載</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#173347;font:16px/1.55 system-ui,sans-serif}main{max-width:980px;margin:auto;padding:16px 14px 48px}a{color:#00627a}header,section{background:white;border:1px solid #ccdce5;border-radius:16px;padding:clamp(14px,3vw,24px);margin:12px 0}header{background:#12344b;color:white}header p{color:#d7e9f1}h1,h2,h3,p{margin:0 0 10px}h1{font-size:clamp(25px,5vw,36px)}h2{font-size:21px}h3{font-size:17px}.note,small{color:#426074}fieldset{min-width:0;margin:0;padding:12px;border:1px solid #cbdce5;border-radius:10px}legend{font-weight:700}label{display:block;min-width:0;font-size:14px}input,button{font:inherit;font-size:16px;min-height:44px;border:1px solid #8da8b9;border-radius:8px;padding:6px 9px;color:#173347;background:white}input{width:100%}button{cursor:pointer}button.primary{background:#006568;color:white;border-color:#006568}.grid,.faces,.metrics{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}.faces{grid-template-columns:repeat(auto-fit,minmax(min(245px,100%),1fr))}.metric{background:#e7f4f4;border-radius:10px;padding:10px}.metric b{display:block;font-size:20px;overflow-wrap:anywhere}.scroll{overflow-x:auto;max-width:100%}table{width:100%;min-width:590px;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{padding:8px;text-align:right;border-bottom:1px solid #dbe6ec;white-space:nowrap}thead th{background:#e3edf3}th:first-child{text-align:left}.net{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;max-width:520px;margin:12px auto}.net div{border-radius:6px;text-align:center;padding:8px 2px;font-size:13px;font-weight:700}.net b{display:block}.error{color:#a12320}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+</style></head><body><main>
+<a href="../">← 工程工具箱</a>
+<header><h1>機櫃日照熱負載</h1><p>估算六面外殼的穩態均溫、傳入櫃內的淨熱量，以及日照額外增加的熱負載。</p></header>
+<form id="inputs">
+<section><h2>1. 機櫃與環境</h2><div class="grid">
+<label>寬 W（m）<input id="w" type="number" value="0.8" step="any" min="0.01" max="100" required></label>
+<label>深 D（m）<input id="d" type="number" value="1.2" step="any" min="0.01" max="100" required></label>
+<label>高 H（m）<input id="h" type="number" value="2.2" step="any" min="0.01" max="100" required></label>
+<label>室外空氣（°C）<input id="out" type="number" value="35" step="any" min="-100" max="200" required></label>
+<label>櫃內空氣（°C）<input id="inside" type="number" value="30" step="any" min="-100" max="200" required></label>
+<label>有效長波環境溫度（°C）<input id="rad" type="number" value="35" step="any" min="-100" max="200" required></label>
+<label>外側對流 h（W/m²·K）<input id="ho" type="number" value="10" step="any" min="0.01" max="10000" required></label>
+<label>內側對流 h（W/m²·K）<input id="hi" type="number" value="5" step="any" min="0.01" max="10000" required></label>
+<label>外殼板厚（mm）<input id="metalT" type="number" value="1.5" step="any" min="0" max="1000" required></label>
+<label>外殼板材 k（W/m·K）<input id="metalK" type="number" value="45" step="any" min="0.0001" max="10000" required></label>
+<label>絕熱棉 k（W/m·K）<input id="insK" type="number" value="0.04" step="any" min="0.0001" max="10000" required></label>
+<label>外殼長波放射率 ε<input id="eps" type="number" value="0.9" step="any" min="0" max="1" required></label>
+</div><p class="note">櫃內溫度是給定條件。外側 h 請輸入對流係數，長波輻射另外計算。預設為可編輯的示例。</p></section>
+<section><h2>2. 六面日照與絕熱棉</h2><p class="note">輸入落在各面上的總日照強度（面平均，可含直射、散射及反射）。遮陰可填 0。日照吸收率 α 與長波放射率 ε 是不同參數。棉厚填 0 表示無絕熱棉。</p><div id="faces" class="faces"></div></section>
+</form>
+<section><h2>3. 均溫與進入櫃內的熱量</h2><p id="error" class="error" role="alert" hidden></p><div id="results">
+<div id="metrics" class="metrics" aria-live="polite"></div>
+<div id="net" class="net" aria-label="機櫃六面展開圖"></div>
+<div class="scroll" tabindex="0" role="region" aria-label="逐面結果，可橫向滑動"><table><thead><tr><th scope="col">面</th><th scope="col">面積 m²</th><th scope="col">外表面 °C</th><th scope="col">內表面 °C</th><th scope="col">吸收日照 W</th><th scope="col">淨入熱 W</th><th scope="col">日照增量 W</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="actions"><button type="button" id="csv" class="primary">匯出逐面結果 CSV</button></div>
+<p class="note">淨入熱為正表示熱進入櫃內，負值表示散熱。日照增量是與同條件、日照全為 0 的差值。吸收日照有一部分會經外側對流與輻射散回環境。</p></div>
+</section>
+<section><details><summary>計算式與適用範圍</summary><p>各面分別做一維穩態熱平衡。αG + h外(T外氣 − T外表面) + εσ(T長波⁴ − T外表面⁴) = q。q = (T外表面 − T內氣) / (板厚/k板 + 棉厚/k棉 + 1/h內)，長波項用 K。各面的 q 乘面積得到淨入熱量。</p><p>每面輸出為代表性均溫。模型使用同一個外側對流係數及有效長波環境溫度，忽略角落熱橋、縫隙漏風、機櫃內部熱源及暫態蓄熱。底面預設是可與外氣換熱的離地板面，接地情境需另外處理。</p><a href="https://energyplus.net/assets/nrel_custom/pdfs/pdfs_v22.2.0/EngineeringReference.pdf">EnergyPlus Engineering Reference · Outside Surface Heat Balance</a></details></section>
+</main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const faces = [
+  {name:'頂面',axes:'wd',sun:850,row:1,col:2},
+  {name:'左側',axes:'dh',sun:150,row:2,col:1},
+  {name:'正面',axes:'wh',sun:500,row:2,col:2},
+  {name:'右側',axes:'dh',sun:250,row:2,col:3},
+  {name:'背面',axes:'wh',sun:100,row:2,col:4},
+  {name:'底面',axes:'wd',sun:0,row:3,col:2}
+];
+const inputIds = ['w','d','h','out','inside','rad','ho','hi','metalT','metalK','insK','eps'];
+const fmt = (x, digits=1) => x.toFixed(digits);
+let csvRows = [];
+for (const [i,face] of faces.entries()) {
+  get('faces').insertAdjacentHTML('beforeend','<fieldset><legend>'+face.name+'</legend><div class="grid">'+
+    '<label>日照 G（W/m²）<input id="g'+i+'" type="number" value="'+face.sun+'" min="0" max="10000" step="any" required></label>'+
+    '<label>日照吸收率 α<input id="a'+i+'" type="number" value="0.6" min="0" max="1" step="any" required></label>'+
+    '<label>絕熱棉厚（mm）<input id="t'+i+'" type="number" value="20" min="0" max="1000" step="any" required></label></div></fieldset>');
+}
+function surface(env, absorbed, insulation) {
+  const sigma = 5.670374419e-8;
+  const resistance = env.metalT/1000/env.metalK + insulation/1000/env.insK + 1/env.hi;
+  const indoor = env.inside + 273.15;
+  const outdoor = env.out + 273.15;
+  const radiant = env.rad + 273.15;
+  let low = Math.min(indoor,outdoor,radiant);
+  let high = Math.max(indoor,outdoor,radiant) + absorbed/(env.ho + 1/resistance);
+  for (let step=0;step<48;step++) {
+    const mid = (low+high)/2;
+    const residual = absorbed + env.ho*(outdoor-mid) + env.eps*sigma*(radiant**4-mid**4) - (mid-indoor)/resistance;
+    if (residual>0) low=mid;
+    else high=mid;
+  }
+  const outer = (low+high)/2 - 273.15;
+  const flux = (outer-env.inside)/resistance;
+  return {outer,inner:env.inside+flux/env.hi,flux};
+}
+function render() {
+  const valid = get('inputs').checkValidity();
+  get('results').hidden = !valid;
+  get('error').hidden = valid;
+  if (!valid) {
+    get('error').textContent = '請填寫所有欄位，並檢查數值是否在允許範圍內。';
+    return;
+  }
+  const number = id => get(id).valueAsNumber;
+  const env = Object.fromEntries(inputIds.map(id=>[id,number(id)]));
+  const rows = faces.map((face,i)=>{
+    const [a,b] = face.axes;
+    const area = env[a]*env[b];
+    const sun = number('g'+i), alpha=number('a'+i), insulation=number('t'+i);
+    const current=surface(env,sun*alpha,insulation);
+    const baseline=surface(env,0,insulation);
+    return {...face,area,sun,alpha,insulation,...current,absorbed:sun*alpha*area,net:current.flux*area,extra:(current.flux-baseline.flux)*area};
+  });
+  const sum = key => rows.reduce((acc,row)=>acc+row[key],0);
+  const hottest = rows.reduce((a,b)=>a.outer>=b.outer?a:b);
+  const average=rows.reduce((acc,row)=>acc+row.outer*row.area,0)/sum('area');
+  get('metrics').innerHTML = [
+    ['櫃體淨入熱',fmt(sum('net'))+' W'],['日照額外入熱',fmt(sum('extra'))+' W'],
+    ['外殼面積加權均溫',fmt(average)+' °C'],['最熱外表面',hottest.name+' '+fmt(hottest.outer)+' °C']
+  ].map(([label,value])=>'<div class="metric">'+label+'<b>'+value+'</b></div>').join('');
+  const min = Math.min(...rows.map(r=>r.outer));
+  get('net').innerHTML=rows.map(r=>{
+    const fraction=hottest.outer===min?0:(r.outer-min)/(hottest.outer-min);
+    const hue=198-167*fraction;
+    return '<div style="grid-row:'+r.row+';grid-column:'+r.col+';background:hsl('+hue+',75%,85%)">'+r.name+'<b>'+fmt(r.outer)+' °C</b></div>';
+  }).join('');
+  get('rows').innerHTML=rows.map(r=>'<tr><th scope="row">'+r.name+'</th>'+[fmt(r.area,2),fmt(r.outer),fmt(r.inner),fmt(r.absorbed),fmt(r.net),fmt(r.extra)].map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('');
+  csvRows=[['面','面積 m²','日照 W/m²','吸收率','絕熱棉 mm','外表面 °C','內表面 °C','吸收日照 W','淨入熱 W','日照增量 W'],
+    ...rows.map(r=>[r.name,r.area,r.sun,r.alpha,r.insulation,r.outer,r.inner,r.absorbed,r.net,r.extra]),
+    ['總計',sum('area'),'','','','','',sum('absorbed'),sum('net'),sum('extra')],[],['共用輸入','數值'],
+    ...inputIds.map(id=>[get(id).parentElement.textContent.trim(),env[id]])];
+}
+get('inputs').addEventListener('input',render);
+get('inputs').addEventListener('submit',event=>event.preventDefault());
+get('csv').onclick=()=>{
+  const csv=csvRows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='cabinet-solar.csv';
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+render();
+</script></body></html>
