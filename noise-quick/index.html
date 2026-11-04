@@ -11,8 +11,8 @@
 <h2>距離換算</h2><label>量測聲壓 LpA（dBA）<input id="level" type="number" step="any" value="40"></label>
 <div class="grid"><label>原量測距離（m）<input id="from" type="number" step="any" value="1"></label><label>評估距離（m）<input id="to" type="number" step="any" value="2"></label></div>
 <label class="check"><input id="alt-enabled" type="checkbox" aria-controls="alt-fields"> 加入海拔修正</label>
-<div id="alt-fields" hidden><div class="grid"><label>原量測海拔（m）<input id="alt-from" type="number" min="0" max="11000" step="any" value="0"></label><label>評估海拔（m）<input id="alt-to" type="number" min="0" max="11000" step="any" value="3000"></label></div>
-<p class="muted">適用 0–11,000 m。以標準大氣估算，假設聲源聲功率及指向性相同。實際風扇轉速、工作點和聲功率變化需另行評估。</p></div>
+<div id="alt-fields" hidden><label>海拔單位<select id="alt-unit"><option value="m">m</option><option value="ft">ft</option></select></label><div class="grid"><label>原量測海拔<input id="alt-from" type="number" min="0" max="11000" step="any" value="0"></label><label>評估海拔<input id="alt-to" type="number" min="0" max="11000" step="any" value="3000"></label></div>
+<p class="muted"><span id="alt-range">適用 0–11,000 m。</span>以標準大氣估算，假設聲源聲功率及指向性相同。實際風扇轉速、工作點和聲功率變化需另行評估。</p></div>
 <output id="distance-result" aria-live="polite"></output><p id="distance-breakdown" class="muted" hidden></p><button type="button" class="primary" id="transfer">加入噪音疊加</button>
 <p class="muted" style="margin-top:12px">採自由場點聲源的遠場估算。同一聲源應沿相同方向換算。近場、反射空間或箱內需另行評估。</p>
 </section>
@@ -38,6 +38,8 @@ function show(mode) {
     get(tab.dataset.mode).hidden = !active;
   }
 }
+const altitudeScale = unit => unit === 'ft' ? 0.3048 : 1;
+const altitudeRange = unit => unit === 'ft' ? '0–36,089.24 ft' : '0–11,000 m';
 function atmosphere(height) {
   const temperature = 288.14 - 0.00649*height;
   const pressure = 101.29*(temperature/288.08)**5.256;
@@ -52,14 +54,16 @@ function distance() {
   const altitude = get('alt-enabled').checked;
   const start = get('alt-from').valueAsNumber;
   const end = get('alt-to').valueAsNumber;
-  const inRange = height => height>=0 && height<=11000;
+  const unit = get('alt-unit').value;
+  const scale = altitudeScale(unit);
+  const inRange = height => height>=0 && height*scale<=11000+1e-8;
   const validAltitude = !altitude || (inRange(start) && inRange(end));
   const distanceChange = 20*(Math.log10(from)-Math.log10(to));
   let altitudeChange = 0;
   let pressureNote = '';
   if (altitude && validAltitude) {
-    const original = atmosphere(start);
-    const target = atmosphere(end);
+    const original = atmosphere(start*scale);
+    const target = atmosphere(end*scale);
     altitudeChange = 10*Math.log10(target.impedance/original.impedance);
     pressureNote = ' · 氣壓 '+original.pressure.toFixed(1)+' → '+target.pressure.toFixed(1)+' kPa';
   }
@@ -69,12 +73,12 @@ function distance() {
   const signed = value => (value>=0?'+':'')+fmt(value)+' dB';
   get('distance-result').textContent = valid
     ? fmt(result)+' dBA（'+signed(change)+'）'
-    : validAltitude ? '請輸入有效聲壓及大於 0 的距離。' : '請輸入 0–11,000 m 內的兩個海拔。';
+    : validAltitude ? '請輸入有效聲壓及大於 0 的距離。' : '請輸入 '+altitudeRange(unit)+' 內的兩個海拔。';
   const breakdown = get('distance-breakdown');
   breakdown.hidden = !altitude || !valid;
   breakdown.textContent = '距離 '+signed(distanceChange)+' · 海拔 '+signed(altitudeChange)+pressureNote;
   get('transfer').disabled = !valid;
-  return valid ? {level:result,note:'距離 '+from+' → '+to+' m'+(altitude?' · 海拔 '+start+' → '+end+' m':'')} : null;
+  return valid ? {level:result,note:'距離 '+from+' → '+to+' m'+(altitude?' · 海拔 '+start+' → '+end+' '+unit:'')} : null;
 }
 function total(rows) {
   const adjusted = rows.map(row => row.level + 10*Math.log10(row.count));
@@ -117,6 +121,20 @@ for (const tab of tabs) tab.onclick = () => show(tab.dataset.mode);
 for (const id of ['level','from','to','alt-from','alt-to']) get(id).oninput = distance;
 get('alt-enabled').onchange = () => {
   get('alt-fields').hidden = !get('alt-enabled').checked;
+  distance();
+};
+let previousAltitudeUnit = get('alt-unit').value;
+get('alt-unit').onchange = () => {
+  const unit = get('alt-unit').value;
+  const factor = altitudeScale(previousAltitudeUnit)/altitudeScale(unit);
+  for (const id of ['alt-from','alt-to']) {
+    const field = get(id);
+    const height = field.valueAsNumber;
+    if (Number.isFinite(height)) field.value = Number((height*factor).toPrecision(14));
+    field.max = 11000/altitudeScale(unit);
+  }
+  get('alt-range').textContent = '適用 '+altitudeRange(unit)+'。';
+  previousAltitudeUnit = unit;
   distance();
 };
 basis.onchange = draw;
