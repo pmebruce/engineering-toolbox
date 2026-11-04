@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>噪音快算</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#173347;font:16px/1.55 system-ui,sans-serif}main{max-width:690px;margin:auto;padding:18px 14px 40px}a{color:#126083}h1{margin:10px 0 2px}h2,p{margin:0 0 10px}.muted,small{color:#486173}section{padding:18px;border:1px solid #c6d6df;border-radius:14px;background:white;margin-top:12px}button,input,select{font:inherit;min-height:44px;border:1px solid #8aa5b6;border-radius:8px;padding:6px 9px;color:inherit;background:white}button{cursor:pointer}button[aria-pressed=true],.primary{background:#006568;color:white;border-color:#006568}button:disabled{opacity:.5}nav,.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}nav button{flex:1}label{display:block}input,select{width:100%;min-width:0}output{display:block;margin:12px 0;background:#e3f3f2;padding:12px;border-radius:9px;font-size:1.3rem;font-weight:700;overflow-wrap:anywhere}.grid,.source{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}.source{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;margin:10px 0}.source small{grid-column:1/-1}hr{border:0;border-top:1px solid #d3e0e6}input:focus,button:focus-visible,select:focus{outline:2px solid #006568;outline-offset:2px}
+</style>
+<main>
+<a href="../">← 工程工具箱</a><h1>噪音快算</h1><p class="muted">換算指定位置的聲壓，再比較多個聲源的總噪音。</p>
+<nav aria-label="計算模式"><button type="button" data-mode="distance" aria-controls="distance" aria-pressed="true">距離換算</button><button type="button" data-mode="sum" aria-controls="sum" aria-pressed="false">噪音疊加</button></nav>
+<section id="distance">
+<h2>距離換算</h2><label>量測聲壓 LpA（dBA）<input id="level" type="number" step="any" value="40"></label>
+<div class="grid"><label>原量測距離（m）<input id="from" type="number" step="any" value="1"></label><label>評估距離（m）<input id="to" type="number" step="any" value="2"></label></div>
+<output id="distance-result" aria-live="polite"></output><button type="button" class="primary" id="transfer">加入噪音疊加</button>
+<p class="muted" style="margin-top:12px">採自由場點聲源的遠場估算。同一聲源應沿相同方向換算。近場、反射空間或箱內需另行評估。</p>
+</section>
+<section id="sum" hidden>
+<h2>噪音疊加</h2><label>聲學量<select id="basis"><option value="LpA">聲壓 LpA（dBA）</option><option value="LwA">聲功率 LwA（dBA）</option></select></label>
+<p id="basis-note" class="muted"></p><div id="sources"></div><div class="actions"><button type="button" id="add">＋聲源</button></div>
+<output id="sum-result" aria-live="polite"></output><p class="muted">以能量相加估算彼此不相干的聲源。數量表示具有相同聲級的一組設備。</p>
+</section>
+<details><summary>計算公式</summary><p>距離換算：L₂ = L₁ − 20 log₁₀(r₂/r₁)。</p><p>噪音疊加：L總 = 10 log₁₀(Σ nᵢ × 10^(Lᵢ/10))。</p></details>
+</main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const basis = get('basis');
+const sources = get('sources');
+const lists = {LpA:[],LwA:[]};
+const tabs = document.querySelectorAll('[data-mode]');
+const fmt = value => value.toFixed(2);
+function show(mode) {
+  for (const tab of tabs) {
+    const active = tab.dataset.mode === mode;
+    tab.setAttribute('aria-pressed',active);
+    get(tab.dataset.mode).hidden = !active;
+  }
+}
+function distance() {
+  const level = get('level').valueAsNumber;
+  const from = get('from').valueAsNumber;
+  const to = get('to').valueAsNumber;
+  const change = 20*(Math.log10(from)-Math.log10(to));
+  const result = level+change;
+  const valid = from>0 && to>0 && Number.isFinite(result);
+  get('distance-result').textContent = valid
+    ? fmt(result)+' dBA（'+(change>=0?'+':'')+fmt(change)+' dB）'
+    : '請輸入有效聲壓及大於 0 的距離。';
+  get('transfer').disabled = !valid;
+  return valid ? {level:result,from,to} : null;
+}
+function total(rows) {
+  const adjusted = rows.map(row => row.level + 10*Math.log10(row.count));
+  const max = Math.max(...adjusted);
+  return max + 10*Math.log10(adjusted.reduce((sum,level)=>sum+10**((level-max)/10),0));
+}
+function updateSum() {
+  const rows = lists[basis.value];
+  const valid = rows.length && rows.every(row => Number.isFinite(row.level) && Number.isSafeInteger(row.count) && row.count>0);
+  get('sum-result').textContent = valid ? fmt(total(rows))+' dBA · '+basis.value : '請加入聲源並填寫聲級與正整數數量。';
+}
+function draw() {
+  const rows = lists[basis.value];
+  get('basis-note').textContent = basis.value === 'LpA'
+    ? '聲壓請統一到同一個接收點。各聲源到該點的距離可以不同。'
+    : '請輸入各設備的聲功率，聲功率不做距離修正。';
+  sources.replaceChildren();
+  rows.forEach((row,i) => {
+    const line = document.createElement('div');
+    line.className = 'source';
+    line.innerHTML = '<label>聲源 '+(i+1)+'（dBA）<input type="number" step="any"></label><label>數量<input type="number" min="1" step="1"></label><button type="button">刪除</button>';
+    const [level,count] = line.querySelectorAll('input');
+    level.value = Number.isFinite(row.level)?row.level:'';
+    count.value = Number.isFinite(row.count)?row.count:'';
+    level.oninput = () => {row.level=level.valueAsNumber;updateSum();};
+    count.oninput = () => {row.count=count.valueAsNumber;updateSum();};
+    const remove = line.querySelector('button');
+    remove.setAttribute('aria-label','刪除聲源 '+(i+1));
+    remove.onclick = () => {rows.splice(i,1);draw();};
+    if (row.note) {
+      const note = document.createElement('small');
+      note.textContent = row.note;
+      line.append(note);
+    }
+    sources.append(line);
+  });
+  updateSum();
+}
+for (const tab of tabs) tab.onclick = () => show(tab.dataset.mode);
+for (const id of ['level','from','to']) get(id).oninput = distance;
+basis.onchange = draw;
+get('add').onclick = () => {
+  lists[basis.value].push({level:NaN,count:1});
+  draw();
+  sources.lastElementChild.querySelector('input').focus();
+};
+get('transfer').onclick = () => {
+  const reading = distance();
+  if (!reading) return;
+  lists.LpA.push({level:reading.level,count:1,note:'由 '+reading.from+' m 換算至 '+reading.to+' m'});
+  basis.value='LpA';
+  draw();
+  show('sum');
+};
+distance();
+draw();
+</script></html>
