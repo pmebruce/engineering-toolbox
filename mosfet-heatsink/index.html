@@ -1,0 +1,106 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MOSFET 散熱片設計</title><style>
+*{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#173347;font:16px/1.55 system-ui,sans-serif}main{max-width:900px;margin:auto;padding:16px 14px 48px}a{color:#00627a;font-weight:700}header,section{background:white;border:1px solid #ccdce5;border-radius:16px;padding:clamp(14px,3vw,24px);margin:12px 0}header{background:#12344b;color:white}h1,h2,p{margin:0 0 10px}h1{font-size:clamp(25px,5vw,36px)}h2{font-size:21px}small,.note{color:#426074}.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr))}label{display:block;min-width:0;font-weight:700}input,select,textarea{width:100%;min-width:0;min-height:44px;margin-top:4px;padding:8px;border:1px solid #8da8b9;border-radius:8px;font:inherit;color:inherit}textarea{min-height:105px}.wide{grid-column:1/-1}.tile{padding:12px;background:#e7f4f4;border-radius:10px}.tile b{display:block;font-size:23px}.jump{display:inline-block;padding:10px 12px;background:#e7f4f4;border-radius:8px}.scroll{overflow:auto}table{width:100%;min-width:620px;border-collapse:collapse}th,td{padding:8px;text-align:right;white-space:nowrap;border-bottom:1px solid #dbe6ec}th{background:#e7eff4}.pass{color:#006568;font-weight:800}.bad{color:#962d18;font-weight:800}svg{display:block;width:100%;max-width:580px;margin:8px auto}code{white-space:normal;overflow-wrap:anywhere}ol{padding-left:24px}li{margin:8px 0}[hidden]{display:none!important}
+</style></head><body><main><a href="../">← 工程工具箱</a><header><h1>MOSFET 散熱片設計</h1><p>掃描鰭片數與間距，估算最高結溫與可承受的 MOSFET 損耗。</p></header><a class="jump" href="#result">↓ 跳到結果</a>
+<form id="inputs"><section><h2>1. 散熱片尺寸與掃描範圍</h2>
+<svg viewBox="0 0 440 174" role="img" aria-label="風沿直鰭片吹。L 是沿風方向的長度，W 是橫跨鰭片的寬度，H 是鰭片高度。"><path d="m86 112 67-55h218l-67 55z" fill="#90b9cb" stroke="#173347" stroke-width="3"/><path d="m93 105 67-55V24l-67 55zm53 0 67-55V24l-67 55zm53 0 67-55V24l-67 55zm53 0 67-55V24l-67 55zm53 0 67-55V24l-67 55z" fill="#d0e8ef" stroke="#173347" stroke-width="3"/><path d="m38 119 49-41m-19 4 19-4-6 18" fill="none" stroke="#006568" stroke-width="5"/><g fill="#173347" font-size="18" font-weight="800"><text x="13" y="149">風向</text><text x="187" y="143">寬 W</text><text x="349" y="98">長 L</text><text x="387" y="48">高 H</text></g><path d="M86 120h218m12-2 65-54m1-40v34" fill="none" stroke="#173347" stroke-width="2"/></svg>
+<div class="grid" id="geometry"></div><p class="note">H 從基板上表面量起。假設導風罩封住鰭片頂端，風從一端進入、另一端離開。掃描時固定 L、W、H 與鰭片厚度。</p></section>
+<section><h2>2. MOSFET 與進風</h2><div class="grid" id="thermal"></div><p class="note">多顆功率不同可填下列比例，例如 1, 1, 2。留空代表均分。使用元件資料表對應安裝面的 RθJC。</p><label>各顆功率比例（選填）<input id="shares" placeholder="例如 1, 1, 2"></label></section>
+<section><h2>3. 風量或風扇 P–Q</h2><label>計算方式<select id="mode"><option value="flow">固定過鰭風量</option><option value="pq">風扇 P–Q 曲線</option></select></label><div class="grid" id="flow-fields"></div><div id="pq-fields" hidden><label>P–Q 曲線，每行一組 CFM, Pa<textarea id="pq" spellcheck="false">0, 70
+10, 61
+20, 47
+30, 27
+40, 0</textarea></label><div class="grid" id="loss-fields"></div><p class="note">示例曲線請換成實際風扇資料。使用同轉速、同密度的靜壓曲線，需涵蓋零風量與自由送風端。回風壓降以指定參考風量換算，排除已計入的鰭片風道。</p></div></section></form>
+<section id="result"><h2>4. 設計結果</h2><a class="jump" href="#inputs">↑ 回到輸入</a><p id="status" role="status"></p><div id="output" hidden><p id="summary" class="note"></p><div id="tiles" class="grid"></div><svg id="plot" viewBox="0 0 400 195" role="img" aria-label="鰭片數與可散總瓦數曲線"></svg><div class="scroll" tabindex="0" role="region" aria-label="鰭片掃描結果"><table><thead><tr><th>鰭片數</th><th>間距 mm</th><th>過鰭 CFM</th><th>總壓降 Pa</th><th>最高 Tj °C</th><th>可散 W</th><th>結果</th></tr></thead><tbody id="rows"></tbody></table></div></div></section>
+<section><h2>5. 計算公式與代入值</h2><ol>
+<li><b>鰭片間距與流道</b> <code>s = (W − N t)/(N − 1)，Aflow = (N − 1)sH，Dh = 2sH/(s + H)</code>。</li>
+<li><b>風量與壓降</b> <code>v = Q/Aflow，Re = ρvDh/μ，ΔP = (f L/Dh + K)ρv²/2 + ΔPref(Q/Qref)²</code>。固定風量模式只計散熱片風道壓降，P–Q 模式用分段線性曲線求交點。層流 Darcy f 使用矩形風道 Poiseuille 數，紊流 f 使用光滑管 Petukhov 式。入口與出口 K 為合併估計。</li>
+<li><b>換熱</b> <code>h = Nu·kair/Dh，m = √(2h/kfin/t)，η = tanh(mH)/(mH)，Aeff = (N − 1)L(s + 2ηH)</code>。層流採矩形風道充分發展定壁溫近似，紊流採 Gnielinski，Re 2300–4000 線性銜接。風罩絕熱、只有三側受熱，以四壁矩形關聯式近似。</li>
+<li><b>溫度與瓦數</b> <code>C = ρQcp，Rsa = 1/[C(1 − exp(−hAeff/C))]，Tb = Tin + P·Rsa，Tj,i = Tb + Pi(RθJC + RθCS)，Pmax = (Tj,limit − Tin)/(Rsa + 最大功率占比 × (RθJC + RθCS))</code>。出口風溫為 <code>Tin + P/C</code>。</li>
+</ol><p id="substitution" class="tile" hidden></p><p class="note">穩態、共用等溫基板、無旁通。未算基板擴散熱阻、局部熱點、入口換熱增強與輻射。固定空氣物性約 40 °C、海平面。封閉箱請填散熱片實際進風溫度。結果適用於尺寸篩選，可用 FloTHERM 或實測校核。</p><a href="https://www.witpress.com/Secure/elibrary/papers/HT12/HT12005FU1.pdf">矩形風道關聯式參考</a> · <a href="https://www.amca.org/educate/articles-and-technical-papers/amca-inmotion-articles/straightening-out-fan-curves.html">AMCA 風扇工作點</a></section>
+</main><script>
+const get=id=>document.getElementById(id);
+const field=([id,label,v,min,max,step='any'])=>'<label>'+label+'<input id="'+id+'" type="number" required value="'+v+'" min="'+min+'" max="'+max+'" step="'+step+'"></label>';
+const groups={
+ geometry:[['l','沿風向長 L（mm）',100,10,500],['w','橫跨鰭片寬 W（mm）',80,10,500],['h','鰭片高 H（mm）',25,3,150],['t','鰭片厚 t（mm）',1.5,.3,10],['k','鰭片導熱率（W/m·K）',200,10,430],['n','指定鰭片數',12,2,100,1],['lo','掃描最少片數',4,2,100,1],['hi','掃描最多片數',28,2,100,1],['gap','最小可製造間距（mm）',1.5,.5,50]],
+ thermal:[['tin','進風溫度（°C）',45,-20,125],['limit','設計結溫上限（°C）',110,0,200],['p','MOSFET 總損耗（W）',35,0,3000],['count','MOSFET 顆數',4,1,50,1],['jc','每顆 RθJC（K/W）',1,0,100],['cs','每顆 RθCS（K/W）',.5,0,100]],
+ 'flow-fields':[['flow','實際過鰭風量（CFM）',15,.01,2000]],
+ 'loss-fields':[['qref','參考風量（CFM）',20,.01,2000],['pref','參考回風壓降（Pa）',0,0,10000]]};
+for(const [id,fields] of Object.entries(groups))get(id).innerHTML=fields.map(field).join('');
+get('flow-fields').insertAdjacentHTML('afterend', '<div class="grid">'+field(['minor','風道入口＋出口 K',1.5,0,20])+'</div>');
+const rho=1.127, mu=1.92e-5, ka=.0273, cp=1007, pr=mu*cp/ka, cfm=.00047194745;
+const f=(n,d=2)=>n.toFixed(d);
+function estimate(x,n,curve,share){
+ const s=(x.w-n*x.t)/(n-1);
+ if(s<x.gap-1e-9)return null;
+ const L=x.l/1000,H=x.h/1000,t=x.t/1000,S=s/1000,A=(n-1)*S*H,D=2*S*H/(S+H);
+ const a=Math.min(H,S)/Math.max(H,S);
+ const po=96*(1-1.3553*a+1.9467*a**2-1.7012*a**3+.9564*a**4-.2537*a**5);
+ const nu0=7.541*(1-2.610*a+4.970*a**2-5.119*a**3+2.702*a**4-.548*a**5);
+ function flow(q){
+  if(q===0)return {dp:0};
+  const v=q*cfm/A,re=rho*v*D/mu,b=Math.max(0,Math.min(1,(re-2300)/1700));
+  const ft=b?(0.79*Math.log(re)-1.64)**-2:0;
+  const friction=(1-b)*po/re+b*ft;
+  const nuT=b?(ft/8)*(re-1000)*pr/(1+12.7*Math.sqrt(ft/8)*(pr**(2/3)-1)):0;
+  return {v,re,nu:(1-b)*nu0+b*nuT,dp:(friction*L/D+x.minor)*rho*v*v/2+(curve?x.pref*(q/x.qref)**2:0)};
+ }
+ let q=x.flow;
+ if(curve){
+  let lo=0,hi=curve.at(-1)[0];
+  for(let i=0;i<45;i++){
+   const mid=(lo+hi)/2;
+   const j=curve.findIndex(([q])=>q>=mid);
+   const [q0,p0]=curve[j-1],[q1,p1]=curve[j];
+   const p=p0+(p1-p0)*(mid-q0)/(q1-q0);
+   if(p>flow(mid).dp)lo=mid;else hi=mid;
+  }
+  q=(lo+hi)/2;
+ }
+ const {v,re,nu,dp}=flow(q),h=nu*ka/D,mH=Math.sqrt(2*h/(x.k*t))*H,eta=Math.tanh(mH)/mH;
+ const area=(n-1)*L*(S+2*eta*H),C=rho*q*cfm*cp;
+ const rsa=1/(-C*Math.expm1(-h*area/C));
+ const totalR=rsa+share*(x.jc+x.cs);
+ return {n,s,q,v,re,nu,dp,h,eta,area,C,rsa,totalR,D,base:x.tin+x.p*rsa,out:x.tin+x.p/C,j:x.tin+x.p*totalR,watts:(x.limit-x.tin)/totalR};
+}
+function parsePQ(value){
+ const points=value.trim().split(/\n/).filter(l=>l.trim()).map(l=>l.trim().split(/[\s,;]+/).map(Number));
+ if(points.length<3||points.some(p=>p.length!==2||p.some(v=>!Number.isFinite(v)||v<0))||points[0][0]!==0||points[0][1]<=0||points.at(-1)[1]!==0||points.some(([q,p],i)=>i&&(q<=points[i-1][0]||p>points[i-1][1])))return null;
+ return points;
+}
+function render(){
+ const fan=get('mode').value==='pq';
+ get('pq-fields').hidden=!fan;get('flow-fields').hidden=fan;
+ const fail=message=>{get('status').textContent=message;get('output').hidden=true;get('substitution').hidden=true;};
+ const fields=[...get('inputs').querySelectorAll('input[type=number]')].filter(e=>!e.closest('[hidden]'));
+ if(fields.some(e=>!e.validity.valid))return fail('請檢查數值範圍及必填欄位。');
+ const x=Object.fromEntries(fields.map(e=>[e.id,e.valueAsNumber]));
+ if(x.limit<=x.tin||x.hi<x.lo)return fail('結溫上限需高於進風溫度，且掃描上限需不小於下限。');
+ const raw=get('shares').value.trim();
+ const shares=raw?raw.split(/[\s,;]+/).map(Number):Array(x.count).fill(1);
+ const sum=shares.reduce((a,b)=>a+b,0);
+ if(shares.length!==x.count||!Number.isFinite(sum)||sum<=0||shares.some(v=>!Number.isFinite(v)||v<0))return fail('請填與 MOSFET 顆數相同的非負功率比例，合計須大於 0。');
+ const curve=fan?parsePQ(get('pq').value):null;
+ if(fan&&!curve)return fail('請填至少三組 P–Q 資料，風量遞增且壓力不增加，從 0 CFM 到 0 Pa。');
+ const share=Math.max(...shares)/sum;
+ const rows=Array.from({length:x.hi-x.lo+1},(_,i)=>estimate(x,x.lo+i,curve,share)).filter(Boolean);
+ const selected=estimate(x,x.n,curve,share);
+ if(!rows.length&&!selected)return fail('目前寬度、鰭片厚度與最小間距放不下這些鰭片。');
+ const best=rows.reduce((a,b)=>!a||b.watts>a.watts?b:a,null);
+ const min=rows.find(r=>r.j<=x.limit);
+ get('status').textContent=rows.length?(min?'最少 '+min.n+' 片達標，掃描中最大散熱能力為 '+best.n+' 片。':'掃描範圍內沒有達標方案。'):'掃描範圍內沒有可製造的方案。';
+ get('output').hidden=false;
+ get('summary').textContent=(fan?'同一顆風扇 · 每組重算工作點':'同風量比較 · 固定過鰭風量')+' · L '+x.l+' mm · 進風 '+x.tin+' °C · 結溫上限 '+x.limit+' °C';
+ const tiles=selected?[[x.n+' 片可散總損耗',f(selected.watts)+' W'],['最高結溫',f(selected.j)+' °C'],['基板／出口風溫',f(selected.base)+' / '+f(selected.out)+' °C'],['過鰭風量／間距',f(selected.q)+' CFM / '+f(selected.s)+' mm']]:[['指定片數','間距不足']];
+ get('tiles').innerHTML=tiles.map(([k,v])=>'<div class="tile">'+k+'<b>'+v+'</b></div>').join('');
+ get('rows').innerHTML=rows.map(r=>'<tr><td>'+[r.n,f(r.s),f(r.q),f(r.dp),f(r.j),f(r.watts)].join('</td><td>')+'</td><td class="'+(r.j<=x.limit?'pass':'bad')+'">'+(r.j<=x.limit?'達標':'超溫')+'</td></tr>').join('');
+ const ymax=Math.max(1,x.p,...rows.map(r=>r.watts))*1.08, Y=v=>155-125*v/ymax, X=n=>x.lo===x.hi?210:50+320*(n-x.lo)/(x.hi-x.lo);
+ get('plot').innerHTML=rows.length?'<path d="M50 24V155H370" fill="none" stroke="#173347"/><path d="M50 '+Y(x.p)+'H370" stroke="#a3532a" stroke-dasharray="5 4"/><polyline fill="none" stroke="#006568" stroke-width="3" points="'+rows.map(r=>X(r.n)+','+Y(r.watts)).join(' ')+'"/>'+rows.map(r=>'<circle cx="'+X(r.n)+'" cy="'+Y(r.watts)+'" r="2.5" fill="#006568"/>').join('')+'<g fill="#173347" font-size="14"><text x="50" y="19">可散總瓦數（W）</text><text x="6" y="36">'+f(ymax,0)+'</text><text x="35" y="158">0</text><text x="50" y="178">'+x.lo+'</text><text x="338" y="178">'+x.hi+'</text><text x="155" y="178">鰭片數</text></g>':'';
+ get('plot').hidden=!rows.length;
+ const r=selected;
+ get('substitution').hidden=!r;
+ if(r)get('substitution').textContent='指定 '+r.n+' 片 · s = '+f(r.s)+' mm · Dh = '+f(r.D*1000)+' mm · Re = '+f(r.re,0)+' · Nu = '+f(r.nu)+' · h = '+f(r.h)+' W/m²·K · η = '+f(r.eta,3)+' · Aeff = '+f(r.area,4)+' m² · Rsa = '+f(r.rsa,3)+' K/W · 最熱顆功率 = '+f(x.p*share)+' W · Tj,max = '+f(r.base)+' + '+f(x.p*share*(x.jc+x.cs))+' = '+f(r.j)+' °C。';
+}
+get('inputs').addEventListener('input',render);
+get('inputs').addEventListener('submit',e=>e.preventDefault());
+render();
+</script></body></html>
