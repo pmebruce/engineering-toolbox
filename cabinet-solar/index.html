@@ -43,7 +43,14 @@
 <p id="gr-status" class="note" role="status"></p>
 <div class="actions"><button type="button" id="gr-apply" class="primary">套用 GR-487 日照條件</button></div>
 <p class="note">留空 A₁ 時，採 (1 + 3A₀) / 4，Aₑ 取 A₀、A₁ 中較高者。不同面使用不同塗裝時，套用後可逐面修改。有效長波環境溫度會先與外氣設為相同，仍可自行調整。</p>
-</details><div id="faces" class="faces"></div></section>
+</details><details class="gr-preset" open><summary>場址日照｜依朝向換算六面</summary>
+<p class="note">方位從正北 0° 順時針計算。面向正面外方時，右側 = 正面 + 90°，左側 = 正面 − 90°。下方預設值為示例。</p>
+<div id="site-sun-inputs"><div class="grid"><label>太陽高度角（°）<input id="sun-elev" type="number" value="55" min="0" max="90" step="any" required></label><label>太陽方位角（°）<input id="sun-az" type="number" value="240" min="0" max="360" step="any" required></label><label>機櫃正面方位角（°）<input id="sun-front" type="number" value="180" min="0" max="360" step="any" required></label><label>直射法向 DNI（W/m²）<input id="sun-dni" type="number" value="800" min="0" max="2000" step="any" required></label><label>水平天空散射 DHI（W/m²）<input id="sun-dhi" type="number" value="120" min="0" max="2000" step="any" required></label><label>地面短波反射率<input id="sun-albedo" type="number" value="0.2" min="0" max="1" step="any" required></label></div>
+<p class="note">直射依入射角投影，天空散射與地面反射採各向同性近似。底面以離地且可見地面估算。若有遮棚、牆面或接地遮擋，套用後請逐面修正。太陽在地平線下時可直接將六面日照設為 0。</p>
+<div class="actions"><button type="button" id="sun-apply" class="primary">計算並套用六面日照</button></div><p id="sun-status" role="status" class="note"></p></div></details>
+<details class="gr-preset"><summary>其他試驗參考｜IEC／MIL</summary><p class="note"><strong>IEC 60068-2-5:2018 Test Sa</strong> 的參考輻照度為 1,090 W/m²。照射面、外氣及時程依專案試驗計畫設定。<a href="https://webstore.iec.ch/en/publication/32126">IEC 文件</a></p>
+<p class="note"><strong>MIL-STD-810H Method 505.7 Procedure I</strong> 的日照峰值為 1,120 W/m²，A1／A2 的外氣峰值為 49／43°C，與日照峰值不同時。請使用各評估時刻配對的外氣與輻照度。<a href="https://quicksearch.dla.mil/qsDocdetails.aspx?ident_number=35978">DLA 文件</a></p>
+<p class="note">此工具做穩態預估。試驗參考值請依受照面逐面輸入，試驗循環與判定依正式計畫執行。</p></details><div id="faces" class="faces"></div></section>
 </form>
 <section><h2>3. 均溫與進入櫃內的熱量</h2><p id="error" class="error" role="alert" hidden></p><div id="results">
 <div id="metrics" class="metrics" aria-live="polite"></div>
@@ -106,7 +113,7 @@ function render() {
       get(id).parentElement.hidden = hidden;
     }
   });
-  const valid = [...get('inputs').elements].every(field => field.closest('#gr-inputs') || field.validity.valid);
+  const valid = [...get('inputs').elements].every(field => field.closest('#gr-inputs, #site-sun-inputs') || field.validity.valid);
   get('results').hidden = !valid;
   get('error').hidden = valid;
   if (!valid) {
@@ -144,6 +151,22 @@ function render() {
     ['絕熱棉輸入方式',direct?'直接填 R″':'厚度＋k 值'],
     ...inputIds.filter(id=>!direct||id!=='insK').map(id=>[get(id).parentElement.textContent.trim(),env[id]])];
 }
+function siteIrradiance(elev, az, front, dni, dhi, albedo) {
+  const radians = Math.PI/180;
+  const vertical = Math.sin(elev*radians);
+  const horizontal = elev===90 ? 0 : Math.cos(elev*radians);
+  const ghi = dni*vertical+dhi;
+  const side = offset => dni*Math.max(0,horizontal*Math.cos((az-front-offset)*radians)) + (dhi+albedo*ghi)/2;
+  return [ghi,side(-90),side(0),side(90),side(180),albedo*ghi];
+}
+get('sun-apply').onclick = () => {
+  const fields = [...get('site-sun-inputs').querySelectorAll('input')];
+  if (!fields.every(field=>field.reportValidity())) return;
+  const values = siteIrradiance(...fields.map(field=>field.valueAsNumber));
+  values.forEach((value,i)=>{get('g'+i).value=Number(value.toFixed(2));});
+  get('sun-status').textContent = '已套用：'+values.map((value,i)=>faces[i].name+' '+value.toFixed(1)).join(' · ')+' W/m²。';
+  render();
+};
 function grAbsorptance(initial, aged) {
   return Math.max(initial, aged ?? (1+3*initial)/4);
 }
@@ -167,7 +190,7 @@ get('gr-apply').onclick = () => {
   render();
 };
 get('inputs').addEventListener('input',event=>{
-  if(!event.target.closest('#gr-inputs'))render();
+  if(!event.target.closest('#gr-inputs, #site-sun-inputs'))render();
 });
 get('insMode').addEventListener('change',render);
 get('inputs').addEventListener('submit',event=>event.preventDefault());
