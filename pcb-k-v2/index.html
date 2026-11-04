@@ -149,13 +149,13 @@ function visuals(stack, result, via) {
     '<path d="'+path+'" fill="none" stroke="#172c48" stroke-width="3.2" marker-end="url(#flow)"/>';
   const hole = via.count ? '<rect x="124" y="25" width="42" height="96" fill="#a44112" stroke="#5c260d" stroke-width="2.5"/>'+
     '<rect x="135" y="25" width="20" height="96" fill="#fff" stroke="#5c260d" stroke-width="1.5"/>'+
-    flow('M129.5 10V134')+flow('M160.5 10V134') : '';
+    flow('M129.5 10V143')+flow('M160.5 10V143') : '';
   const maxR = Math.max(result.r0,result.rv);
   const bar = (label,r,base = false) => '<div>'+label+' <strong>'+fmt(r)+' K/W</strong></div><div class="bar'+(base?' bar-base':'')+'" aria-hidden="true"><span style="width:'+(100*r/maxR)+'%"></span></div>';
   return '<div class="visuals"><figure><svg viewBox="0 0 290 150" role="img" aria-label="PCB 板層、孔壁與穿板熱流示意">'+
-    '<defs><marker id="flow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 6 6" overflow="visible"><path d="M0 0l6 3-6 3z" fill="#172c48" stroke="#fff" stroke-width="0.6"/></marker></defs>'+
+    '<defs><marker id="flow" markerWidth="18" markerHeight="18" refX="5.7" refY="3" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 6 6" overflow="visible"><path d="M0 0l6 3-6 3z" fill="#172c48" stroke="#fff" stroke-width="0.45" stroke-linejoin="round"/></marker></defs>'+
     board+'<rect x="26" y="25" width="238" height="96" fill="none" stroke="#172c48" stroke-width="3"/>'+hole+
-    flow('M220 10V134')+'</svg>'+
+    flow('M220 10V143')+'</svg>'+
     '<figcaption><strong>板層剖面</strong> · 橘色為銅層或孔壁，藍色為介質。箭頭表示 Z 向熱流，厚度與孔數為示意。</figcaption></figure>'+
     '<figure><strong>同一區域的穿板熱阻</strong>'+bar('無孔',result.r0,true)+bar('輸入孔數 '+via.count,result.rv)+
     '<figcaption>兩組使用同一面積與堆疊。熱阻越低，相同穿板熱流下的溫差越小。</figcaption></figure></div>';
