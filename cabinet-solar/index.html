@@ -3,6 +3,7 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#edf3f6;color:#173347;font:16px/1.55 system-ui,sans-serif}main{max-width:980px;margin:auto;padding:16px 14px 48px}a{color:#00627a}header,section{background:white;border:1px solid #ccdce5;border-radius:16px;padding:clamp(14px,3vw,24px);margin:12px 0}header{background:#12344b;color:white}header p{color:#d7e9f1}h1,h2,h3,p{margin:0 0 10px}h1{font-size:clamp(25px,5vw,36px)}h2{font-size:21px}h3{font-size:17px}.note,small{color:#426074}fieldset{min-width:0;margin:0;padding:12px;border:1px solid #cbdce5;border-radius:10px}legend{font-weight:700}label{display:block;min-width:0;font-size:14px}input,button,select{font:inherit;font-size:16px;min-height:44px;border:1px solid #8da8b9;border-radius:8px;padding:6px 9px;color:#173347;background:white}input,select{width:100%;min-width:0}.insulation-settings{margin:12px 0}button{cursor:pointer}button.primary{background:#006568;color:white;border-color:#006568}.grid,.faces,.metrics{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}.faces{grid-template-columns:repeat(auto-fit,minmax(min(245px,100%),1fr))}.metric{background:#e7f4f4;border-radius:10px;padding:10px}.metric b{display:block;font-size:20px;overflow-wrap:anywhere}.scroll{overflow-x:auto;max-width:100%}table{width:100%;min-width:590px;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{padding:8px;text-align:right;border-bottom:1px solid #dbe6ec;white-space:nowrap}thead th{background:#e3edf3}th:first-child{text-align:left}.net{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;max-width:520px;margin:12px auto}.net div{border-radius:6px;text-align:center;padding:8px 2px;font-size:13px;font-weight:700}.net b{display:block}.error{color:#a12320}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 [hidden]{display:none!important}
+.gr-preset{margin:12px 0;padding:12px;border:1px solid #cbdce5;border-radius:10px;background:#f2f8fa}.gr-preset summary{margin-bottom:8px}
 </style></head><body><main>
 <a href="../">← 工程工具箱</a>
 <header><h1>機櫃日照熱負載</h1><p>估算六面外殼的穩態均溫、傳入櫃內的淨熱量，以及日照額外增加的熱負載。</p></header>
@@ -20,7 +21,18 @@
 <label>外殼板材 k（W/m·K）<input id="metalK" type="number" value="45" step="any" min="0.0001" max="10000" required></label>
 <label>外殼長波放射率 ε<input id="eps" type="number" value="0.9" step="any" min="0" max="1" required></label>
 </div><p class="note">櫃內溫度是給定條件。外側 h 請輸入對流係數，長波輻射另外計算。預設為可編輯的示例。</p></section>
-<section><h2>2. 六面日照與絕熱棉</h2><p class="note">輸入落在各面上的總日照強度（面平均，可含直射、散射及反射）。遮陰可填 0。日照吸收率 α 與長波放射率 ε 是不同參數。</p><div class="grid insulation-settings"><label>絕熱棉輸入方式<select id="insMode"><option value="thickness">厚度＋k 值</option><option value="resistance">直接填面積熱阻 R″</option></select></label><label id="insKLabel">絕熱棉 k（W/m·K）<input id="insK" type="number" value="0.04" step="any" min="0.0001" max="10000" required></label></div><p id="insNote" class="note"></p><div id="faces" class="faces"></div></section>
+<section><h2>2. 六面日照與絕熱棉</h2><p class="note">輸入落在各面上的總日照強度（面平均，可含直射、散射及反射）。遮陰可填 0。日照吸收率 α 與長波放射率 ε 是不同參數。</p><div class="grid insulation-settings"><label>絕熱棉輸入方式<select id="insMode"><option value="thickness">厚度＋k 值</option><option value="resistance">直接填面積熱阻 R″</option></select></label><label id="insKLabel">絕熱棉 k（W/m·K）<input id="insK" type="number" value="0.04" step="any" min="0.0001" max="10000" required></label></div><p id="insNote" class="note"></p><details class="gr-preset"><summary>GR-487-CORE Issue 3 日照預設</summary>
+<p class="note">頂面與所選相鄰側面各填 753 W/m²，其餘面填 0。選擇對櫃內關鍵設備最不利的組合。此功能用於熱負載預估。</p>
+<div id="gr-inputs" class="grid">
+<label>相鄰側面<select id="gr-sides"><option value="2,3">正面＋右側</option><option value="3,4">右側＋背面</option><option value="4,1">背面＋左側</option><option value="1,2">左側＋正面</option></select></label>
+<label>試驗外氣（°C）<select id="gr-ambient"><option value="46">46 · 基本條件</option><option value="51.7">51.7 · 客戶指定時</option></select></label>
+<label>照射面共用初始吸收率 A₀<input id="gr-a0" type="number" min="0" max="1" step="any" value="0.6" required></label>
+<label>照射面共用老化吸收率 A₁<input id="gr-a1" type="number" min="0" max="1" step="any" placeholder="留空用公式估算"></label>
+</div>
+<p id="gr-status" class="note" role="status"></p>
+<div class="actions"><button type="button" id="gr-apply" class="primary">套用 GR-487 日照條件</button></div>
+<p class="note">留空 A₁ 時，採 (1 + 3A₀) / 4，Aₑ 取 A₀、A₁ 中較高者。不同面使用不同塗裝時，套用後可逐面修改。有效長波環境溫度會先與外氣設為相同，仍可自行調整。</p>
+</details><div id="faces" class="faces"></div></section>
 </form>
 <section><h2>3. 均溫與進入櫃內的熱量</h2><p id="error" class="error" role="alert" hidden></p><div id="results">
 <div id="metrics" class="metrics" aria-live="polite"></div>
@@ -83,7 +95,7 @@ function render() {
       get(id).parentElement.hidden = hidden;
     }
   });
-  const valid = get('inputs').checkValidity();
+  const valid = [...get('inputs').elements].every(field => field.closest('#gr-inputs') || field.validity.valid);
   get('results').hidden = !valid;
   get('error').hidden = valid;
   if (!valid) {
@@ -121,7 +133,31 @@ function render() {
     ['絕熱棉輸入方式',direct?'直接填 R″':'厚度＋k 值'],
     ...inputIds.filter(id=>!direct||id!=='insK').map(id=>[get(id).parentElement.textContent.trim(),env[id]])];
 }
-get('inputs').addEventListener('input',render);
+function grAbsorptance(initial, aged) {
+  return Math.max(initial, aged ?? (1+3*initial)/4);
+}
+get('gr-apply').onclick = () => {
+  const a0 = get('gr-a0'), a1 = get('gr-a1');
+  if (!a0.reportValidity() || !a1.reportValidity()) {
+    get('gr-status').textContent = '吸收率請填 0～1，A₁ 可留空。';
+    return;
+  }
+  const effective = grAbsorptance(a0.valueAsNumber, a1.value===''?null:a1.valueAsNumber);
+  const illuminated = new Set([0,...get('gr-sides').value.split(',').map(Number)]);
+  const ambient = get('gr-ambient').value;
+  get('out').value = ambient;
+  get('rad').value = ambient;
+  faces.forEach((_,i)=>{
+    const lit = illuminated.has(i);
+    get('g'+i).value = lit ? 753 : 0;
+    if (lit) get('a'+i).value = Number(effective.toPrecision(12));
+  });
+  get('gr-status').textContent = '已套用 '+ambient+'°C、三面 753 W/m²，照射面 Aₑ = '+Number(effective.toPrecision(6))+'。';
+  render();
+};
+get('inputs').addEventListener('input',event=>{
+  if(!event.target.closest('#gr-inputs'))render();
+});
 get('insMode').addEventListener('change',render);
 get('inputs').addEventListener('submit',event=>event.preventDefault());
 get('csv').onclick=()=>{
