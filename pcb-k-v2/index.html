@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PCB 導熱率 V2｜公開資料版</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:14px;border-radius:5px;background:#d8e6ed;margin:4px 0 10px}.bar span{height:100%;display:block;border-radius:5px;background:#006668}.bar:first-of-type span{background:#9b471c}button:disabled{opacity:.5;cursor:default}
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#142f44;font:16px/1.55 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:20px 14px 48px}header,section{background:white;border:1px solid #cadbe5;border-radius:16px;padding:clamp(14px,3vw,28px);margin:14px 0}header{background:#10324a;color:white}h1,h2,p{margin:0 0 12px}h1{font-size:clamp(25px,5vw,38px)}h2{font-size:21px}small,.note{color:#436073}header small{color:#bde9ed}.grid,.results{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr))}label{display:block;font-size:14px}input,select,button{font:inherit;min-height:44px;border-radius:8px;border:1px solid #8aa6b9;padding:6px 9px}input,select{display:block;width:100%;min-width:0;background:white;color:#142f44}button{background:#006668;color:white;border-color:#006668;cursor:pointer}button.secondary{background:white;color:#005658}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.metric{background:#e9f6f5;border-radius:10px;padding:12px;min-width:0}.metric b{display:block;font-size:23px;overflow-wrap:anywhere}.error{color:#a12320}.stack{display:flex;height:16px;gap:2px;margin:12px 0;overflow:hidden;border-radius:4px}.stack span{min-width:2px}a{color:#005b87}summary{cursor:pointer;font-weight:700}li{margin:6px 0}.visuals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:14px;margin:14px 0}.visuals figure{margin:0;padding:12px;border:1px solid #cadbe5;border-radius:12px;background:#f7fbfd}.visuals svg{display:block;width:100%;height:auto}.visuals figcaption{font-size:14px;color:#344e61}.bar{height:22px;border:1px solid #879daa;border-radius:6px;background:#e3ebf0;margin:5px 0 12px}.bar span{height:100%;display:block;border-radius:5px;background:#005666}.bar-base span{background:#963c13}button:disabled{opacity:.5;cursor:default}
 .stack-hint{font-size:14px;color:#436073;margin:14px 0 6px}.stack-scroll{max-width:100%;overflow-x:auto;border:1px solid #cadbe5;border-radius:10px}.stack-scroll:focus-visible{outline:2px solid #006668;outline-offset:2px}.layer-table{width:100%;min-width:610px;border-collapse:separate;border-spacing:0;font-size:14px}.layer-table th,.layer-table td{padding:5px 7px;text-align:left;border-bottom:1px solid #dce6ed}.layer-table thead th{background:#e3edf3;white-space:nowrap;line-height:1.3}.layer-table tbody tr:nth-child(even){background:#f2f7fa}.layer-table tbody tr:last-child>*{border-bottom:0}.layer-table th:first-child{position:sticky;left:0;background:#e3edf3;white-space:nowrap}.layer-table input{min-width:64px;font-size:16px}.layer-table select{min-width:140px;font-size:16px}.layer-table button,.layer-kind{white-space:nowrap}.layer-kind{color:#345568;font-weight:700}[data-kind="cu"] .layer-kind{color:#88421e}.unused{color:#526a7c}
 </style>
 <main>
@@ -137,25 +137,27 @@ const fmt = n => Number(n.toPrecision(5)).toString();
 function visuals(stack, result, via) {
   let y = 25;
   const available = 96;
-  const minimum = Math.min(3, available / (2*stack.length));
+  const minimum = Math.min(5, available / (2*stack.length));
   const board = stack.map(layer => {
     const height = minimum + (available-minimum*stack.length)*layer.thickness/result.t;
     const band = '<rect x="26" y="'+y+'" width="238" height="'+height+'" fill="'+
-      (layer.kind==='cu'?'#b65923':'#b9d9df')+'"/>';
+      (layer.kind==='cu'?'#a44112':'#d2edf6')+'" stroke="#254b63" stroke-width="1"/>';
     y += height;
     return band;
   }).join('');
-  const hole = via.count ? '<rect x="126" y="25" width="38" height="96" fill="#a44c1e" stroke="#633015" stroke-width="2"/>'+
-    '<rect x="135" y="25" width="20" height="96" fill="#f7fbfd"/>'+
-    '<path d="M130 8v128m30-128v128" stroke="#793417" stroke-width="2" marker-end="url(#flow)"/>' : '';
+  const flow = path => '<path d="'+path+'" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>'+
+    '<path d="'+path+'" fill="none" stroke="#172c48" stroke-width="3.2" marker-end="url(#flow)"/>';
+  const hole = via.count ? '<rect x="124" y="25" width="42" height="96" fill="#a44112" stroke="#5c260d" stroke-width="2.5"/>'+
+    '<rect x="135" y="25" width="20" height="96" fill="#fff" stroke="#5c260d" stroke-width="1.5"/>'+
+    flow('M129.5 10V134')+flow('M160.5 10V134') : '';
   const maxR = Math.max(result.r0,result.rv);
-  const bar = (label,r) => '<div>'+label+' <strong>'+fmt(r)+' K/W</strong></div><div class="bar" aria-hidden="true"><span style="width:'+(100*r/maxR)+'%"></span></div>';
+  const bar = (label,r,base = false) => '<div>'+label+' <strong>'+fmt(r)+' K/W</strong></div><div class="bar'+(base?' bar-base':'')+'" aria-hidden="true"><span style="width:'+(100*r/maxR)+'%"></span></div>';
   return '<div class="visuals"><figure><svg viewBox="0 0 290 150" role="img" aria-label="PCB 板層、孔壁與穿板熱流示意">'+
-    '<defs><marker id="flow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0l6 3-6 3z" fill="#793417"/></marker></defs>'+
-    board+'<rect x="26" y="25" width="238" height="96" fill="none" stroke="#22465b" stroke-width="2"/>'+hole+
-    '<path d="M220 8v128" stroke="#793417" stroke-width="2" marker-end="url(#flow)"/></svg>'+
+    '<defs><marker id="flow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 6 6" overflow="visible"><path d="M0 0l6 3-6 3z" fill="#172c48" stroke="#fff" stroke-width="0.6"/></marker></defs>'+
+    board+'<rect x="26" y="25" width="238" height="96" fill="none" stroke="#172c48" stroke-width="3"/>'+hole+
+    flow('M220 10V134')+'</svg>'+
     '<figcaption><strong>板層剖面</strong> · 橘色為銅層或孔壁，藍色為介質。箭頭表示 Z 向熱流，厚度與孔數為示意。</figcaption></figure>'+
-    '<figure><strong>同一區域的穿板熱阻</strong>'+bar('無孔',result.r0)+bar('輸入孔數 '+via.count,result.rv)+
+    '<figure><strong>同一區域的穿板熱阻</strong>'+bar('無孔',result.r0,true)+bar('輸入孔數 '+via.count,result.rv)+
     '<figcaption>兩組使用同一面積與堆疊。熱阻越低，相同穿板熱流下的溫差越小。</figcaption></figure></div>';
 }
 function render() {
@@ -179,7 +181,7 @@ function render() {
       ['單孔理想熱阻',via.count ? fmt(r.single) : '—','K/W'],['通孔投影占比',fmt(r.fraction*100),'%']
     ];
     output.innerHTML = '<div class="stack" aria-label="由左至右為由上到下的板層，橘色為銅層">' +
-      stack.map(l => '<span style="flex:'+l.thickness+';background:'+(l.kind==='cu'?'#a64d20':'#88b9c1')+'"></span>').join('') +
+      stack.map(l => '<span style="flex:'+l.thickness+';background:'+(l.kind==='cu'?'#a44112':'#75b7d2')+'"></span>').join('') +
       '</div><div class="results">'+metrics.map(([label,n,unit]) => '<div class="metric">'+label+'<b>'+n+'</b>'+unit+'</div>').join('')+'</div>'+visuals(stack,r,via);
     exportRows = [['項目','數值','單位'],['銅箔 k',value('cu'),'W/m·K'],['銅層空白處介質 k',value('matrix'),'W/m·K'],
       ...Object.entries(via).map(([id,n]) => [byId(id).parentElement.textContent.trim(),n,'']), ...metrics,
