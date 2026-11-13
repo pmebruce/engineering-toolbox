@@ -2,7 +2,7 @@
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17383e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="匯流排損耗"><title>銅排／鋁排損耗計算器｜Busbar Loss</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Microsoft JhengHei",sans-serif;color:#17383e;background:#f5f3ed;font-size:18px;--copper:#b66b3f;--line:#dcded5}*{box-sizing:border-box}body{margin:0}header{background:#17383e;color:#fff;padding:32px max(20px,calc((100vw - 1160px)/2))}header a{color:#c5dad6;font-size:15px;text-decoration:none}h1{font-size:clamp(28px,4vw,40px);margin:14px 0 8px;letter-spacing:.03em}header p{color:#c8d8d5;margin:0;line-height:1.7}.eyebrow{color:#dfad84;font-size:13px;letter-spacing:.18em;margin-top:22px}main{max-width:1200px;margin:auto;padding:24px 20px 50px}.layout{display:grid;grid-template-columns:1.08fr 1fr;gap:24px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:20px}h2{font-size:22px;margin:0 0 20px}h3{font-size:18px}.sub{font-size:15px;color:#617473;line-height:1.7}.fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:block;font-size:17px;font-weight:600}.unit{font-size:14px;font-weight:400;color:#677875;margin-left:5px}input,button,textarea,select{font:inherit}[hidden]{display:none!important}input,select{width:100%;margin-top:8px;padding:12px;border:1px solid #bfcac6;border-radius:9px;background:#fcfcf9;color:#17383e;min-height:50px}input:focus,select:focus,button:focus-visible{outline:3px solid #d5b391;outline-offset:2px}button{cursor:pointer;border:1px solid #bfcec7;border-radius:9px;padding:11px 16px;background:#f5f7f2;color:#17383e;min-height:46px}button.primary{background:#17383e;color:white;border-color:#17383e}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.note{background:#f8f2e8;border-left:3px solid #b66b3f;padding:13px 15px;font-size:15px;line-height:1.8;border-radius:4px}.hero{background:#17383e;color:white;border-color:#17383e}.hero .sub{color:#c6d8d3}.big{font-size:48px;font-weight:700;letter-spacing:-.03em;margin:8px 0}.big span{font-size:22px;color:#d7b593}.split{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-top:1px solid #557070;padding-top:18px;margin-top:18px}.split strong{display:block;font-size:25px;margin-top:5px}.bar{display:flex;height:9px;background:#c99566;border-radius:8px;overflow:hidden;margin-top:20px}.bar i{display:block;background:#6bb8a4}.legend{display:flex;justify-content:space-between;font-size:14px;margin-top:8px;color:#d0dfda}dl{margin:0}dl>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e6e9e2}dt{color:#5b706e;font-size:16px}dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}details{border-top:1px solid #e2e5dd;padding-top:16px;margin-top:20px}summary{cursor:pointer;font-weight:600;line-height:1.7}table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:right;padding:12px 8px;border-bottom:1px solid #e3e7e0}td:first-child,th:first-child{text-align:left}th{color:#667975}#error{color:#9f342c;line-height:1.7}textarea{width:100%;height:170px;padding:12px;font-size:15px}footer{color:#657976;font-size:14px;line-height:1.8}a{color:#8e542e}.material-options{display:flex;gap:8px;border:0;padding:0;margin:0 0 18px}.material-options legend{margin-bottom:8px;font-weight:600}.material-options label{position:relative;flex:1}.material-options span{display:block;text-align:center;padding:10px;border:1px solid #bfcec7;border-radius:9px;background:#f5f7f2}.material-options input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}.material-options input:checked+span{background:#17383e;color:white}.material-options input:focus-visible+span{outline:3px solid #b66b3f}.orientation-preview{display:flex;align-items:center;gap:16px;min-height:80px;margin-top:8px}.bar-preview{display:block;flex:none;width:74px;height:70px;position:relative}.bar-preview::before{content:"";position:absolute;inset:25px 3px;background:#b66b3f;box-shadow:0 4px #875035;transform:skewX(-25deg)}.bar-preview[data-orientation=edge]::before{inset:19px 4px;transform:skewY(-10deg);box-shadow:4px 2px #875035}.bar-preview[data-orientation=upright]::before{inset:4px 24px;transform:skewY(-10deg);box-shadow:4px 2px #875035}.check-label{display:flex;align-items:center;gap:10px}.check-label input{width:20px;min-height:20px;margin:0;flex:none}.badge{display:inline-block;border:1px solid #b0c9c1;border-radius:20px;padding:4px 10px;font-size:13px;color:#d9e6df;margin-top:16px}.schematic{width:100%;height:90px;display:block;margin-bottom:16px}.scroll{overflow:auto}#status{min-height:24px;color:#5d756c;font-size:15px}body.invalid .calculated{display:none}@media(max-width:800px){.layout{grid-template-columns:1fr}.card{padding:20px}main{padding:18px 14px}.big{font-size:44px}}@media(max-width:380px){.fields{grid-template-columns:1fr}}@media print{header{background:white;color:#17383e;padding:10px}header p{color:#17383e}header a,.actions,button,footer{display:none}.layout{display:block}.card{break-inside:avoid}.hero{background:white;color:#17383e}.hero .sub,.legend{color:#17383e}details{display:block}main{padding:0}}
-</style></head><body><header><a href="../">← 工程工具箱</a><div class="eyebrow">BUSBAR LOSS · v1.2</div><h1>銅排／鋁排損耗計算器</h1><p>從尺寸與電流，取得電阻、壓降及熱源瓦數。</p><span class="badge">直流 · 等截面</span></header><main><div class="layout"><section>
+</style></head><body><header><a href="../">← 工程工具箱</a><div class="eyebrow">BUSBAR LOSS · v1.2.1</div><h1>銅排／鋁排損耗計算器</h1><p>從尺寸與電流，取得電阻、壓降及熱源瓦數。</p><span class="badge">直流 · 等截面</span></header><main><div class="layout"><section>
 <div class="card"><h2>01　匯流排與工作條件</h2>
 <fieldset class="material-options"><legend>材料</legend>
 <label><input id="material-copper" name="material" type="radio" value="copper" checked><span>銅排</span></label>
@@ -21,13 +21,13 @@
 <select id="temperature-mode"><option value="manual">手動輸入排體溫度</option><option value="steady">自動估算穩態排體溫度</option></select>
 <div id="steady-inputs" style="margin-top:18px" hidden>
 <div class="fields">
-<label>參考溫度<span class="unit">°C</span><input id="reference-temp" type="number" min="-50" max="200" step="any" value="45"></label>
+<label><span id="reference-label">參考溫度</span><span class="unit">°C</span><input id="reference-temp" type="number" min="-50" max="200" step="any" value="45"></label>
 <label>散熱方式<select id="cooling"><option value="resistance">自訂等效熱阻</option><option value="natural">無風／自然對流</option></select></label>
 </div>
 <div id="resistance-inputs" style="margin-top:18px">
 <label>單支路等效熱阻<span class="unit">K/W</span><input id="thermal-resistance" type="number" min="0" step="any" placeholder="依實測或 XT 結果填入"></label>
 </div>
-<p class="sub">參考溫度可用匯流排附近的空氣溫度。熱阻以單支匯流排與該支路接點的總發熱為基準，請使用相同安裝與冷卻條件下的實測或 XT 結果。</p>
+<p class="sub">請填入與熱阻配對的參考溫度，例如熱阻若以匯流排附近空氣為基準，就填該處的空氣溫度。熱阻以單支匯流排與該支路接點的總發熱為基準，請使用相同安裝與冷卻條件下的實測或 XT 結果。</p>
 </div>
 <div id="natural-inputs" style="margin-top:18px" hidden>
 <label>匯流排擺法<select id="orientation"><option value="flat">平放（大面水平）</option><option value="edge">立放（大面垂直，長度水平）</option><option value="upright">豎直（長度方向垂直）</option></select></label>
@@ -40,7 +40,7 @@
 <p class="sub" id="surface-note"></p>
 <div class="fields">
 <label id="emissivity-input">放射率<input id="emissivity" type="number" min="0" max="1" step="any" value="0.1"></label>
-<label>周圍表面溫度<span class="unit">°C</span><input id="surroundings" type="number" min="-50" max="200" step="any" placeholder="預設同參考溫度"></label>
+<label>周圍表面溫度<span class="unit">°C</span><input id="surroundings" type="number" min="-50" max="200" step="any" placeholder="預設同附近空氣溫度"></label>
 </div>
 </div>
 </details>
@@ -56,7 +56,7 @@
 <div class="card"><h2>電氣計算結果</h2><dl id="electrical"></dl></div>
 <div class="card"><h2>FloTHERM／XT 熱源</h2><dl id="thermal"></dl><p class="note">簡化熱模型：每支匯流排只施加「單支本體損耗」，接點瓦數施加於接合區。若 XT 已啟用 Joule Heating，不要重複加入同一份損耗。接點體積未定義，因此不提供接點體積熱源。</p><div class="actions"><button class="primary" id="copy">複製計算報告</button><button id="csv">匯出 CSV</button><button id="print">列印／PDF</button></div><p id="status" role="status"></p><textarea id="fallback" hidden aria-label="計算報告，請全選複製" readonly></textarea></div>
 <div class="card"><h2>相同溫度下的電流比較</h2><p class="sub">固定目前排體溫度與電阻，損耗隨電流平方變化；未計入升溫回饋。</p><div class="scroll"><table><thead><tr><th>總電流 A</th><th>總損耗 W</th><th>壓降 mV</th></tr></thead><tbody id="sweep"></tbody></table></div></div></div>
-</section></div><footer>Busbar Loss v1.2 · 計算在本機瀏覽器執行。輸入會儲存在此裝置；可離線開啟已下載的 HTML 檔。<br>加入主畫面：iPhone 使用 Safari「分享 → 加入主畫面」；Android 使用瀏覽器選單「加入主畫面」。網站初次開啟需連線。</footer></main>
+</section></div><footer>Busbar Loss v1.2.1 · 計算在本機瀏覽器執行。輸入會儲存在此裝置；可離線開啟已下載的 HTML 檔。<br>加入主畫面：iPhone 使用 Safari「分享 → 加入主畫面」；Android 使用瀏覽器選單「加入主畫面」。網站初次開啟需連線。</footer></main>
 <script>
 'use strict';
 const ids=['length','width','thickness','current','temp','parallel','rho','alpha','joints','contact'];
@@ -126,7 +126,7 @@ function solveSteadyTemperature(inputs, reference, thermalResistance){
 }
 function solveNaturalTemperature(inputs,reference,orientation,radiation){
  if(!Number.isFinite(reference)||reference<temperatureMin||reference>temperatureMax){
-  throw Error('請輸入 −50～200°C 的參考溫度。');
+  throw Error('請輸入 −50～200°C 的附近空氣溫度。');
  }
  if(!Number.isFinite(radiation.emissivity)||radiation.emissivity<0||radiation.emissivity>1){
   throw Error('請輸入 0～1 的表面放射率。');
@@ -180,6 +180,7 @@ function update(){
  const estimate=mode==='steady';
  const cooling=$('cooling').value;
  const natural=cooling==='natural';
+ $('reference-label').textContent=natural?'附近空氣溫度':'參考溫度';
  const orientation=$('orientation').value;
  const surface=$('surface').value;
  const radiating=$('radiation').checked;
@@ -227,7 +228,7 @@ function update(){
  if(steady){
   rows('steady-summary',[
    ['匯流排穩態溫度（估算）',steady.temperature.toFixed(1)+' °C'],
-   ['相對參考溫度的溫升',(steady.temperature-steady.reference).toFixed(1)+' °C'],
+   [natural?'相對附近空氣的溫升':'相對參考溫度的溫升',(steady.temperature-steady.reference).toFixed(1)+' °C'],
    ['單支路總發熱（含接點）',fmt(r.pbody+r.pjoint)+' W'],
    ['收斂迭代',steady.iteration+' 輪'],
    ...(natural?[
@@ -245,7 +246,7 @@ function report(){
  const {v,r,steady,material,orientation,radiation,radiating,natural}=last;
  const temperatureReport=steady?[
   '溫度模式：單一熱節點穩態估算',
-  '參考溫度 °C: '+steady.reference,
+  (natural?'附近空氣溫度':'參考溫度')+' °C: '+steady.reference,
   '單支路等效熱阻 K/W: '+(steady.thermalResistance??'—'),
   ...(natural?[
    '散熱方式：無風／自然對流',
@@ -257,7 +258,7 @@ function report(){
   '穩態溫升 °C: '+(steady.temperature-steady.reference).toFixed(1),
   '收斂迭代: '+steady.iteration
  ]:['溫度模式：手動輸入排體溫度'];
- return ['銅排／鋁排損耗計算器 v1.2','模型：直流、等截面、相同並聯支路平均分流。',
+ return ['銅排／鋁排損耗計算器 v1.2.1','模型：直流、等截面、相同並聯支路平均分流。',
  '材料：'+materials[material].name+'（'+materials[material].grade+'預設，可自訂）',
  ...temperatureReport,
  ...ids.map(k=>({length:'長度 mm',width:'寬度 mm',thickness:'厚度 mm',current:'總電流 A',temp:'排體溫度 °C',parallel:'並聯支路數',rho:'20°C 電阻率 Ω·mm²/m',alpha:'溫度係數 1/°C',joints:'每支路接點數',contact:'每接點電阻 μΩ'})[k]+': '+v[k]),
