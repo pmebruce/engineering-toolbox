@@ -1,36 +1,51 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17383e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="銅排損耗"><title>銅排損耗計算器｜Busbar Loss</title>
 <style>
-:root{font-family:system-ui,-apple-system,"Microsoft JhengHei",sans-serif;color:#17383e;background:#f5f3ed;font-size:18px;--copper:#b66b3f;--line:#dcded5}*{box-sizing:border-box}body{margin:0}header{background:#17383e;color:#fff;padding:32px max(20px,calc((100vw - 1160px)/2))}header a{color:#c5dad6;font-size:15px;text-decoration:none}h1{font-size:clamp(28px,4vw,40px);margin:14px 0 8px;letter-spacing:.03em}header p{color:#c8d8d5;margin:0;line-height:1.7}.eyebrow{color:#dfad84;font-size:13px;letter-spacing:.18em;margin-top:22px}main{max-width:1200px;margin:auto;padding:24px 20px 50px}.layout{display:grid;grid-template-columns:1.08fr 1fr;gap:24px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:20px}h2{font-size:22px;margin:0 0 20px}h3{font-size:18px}.sub{font-size:15px;color:#617473;line-height:1.7}.fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:block;font-size:17px;font-weight:600}.unit{font-size:14px;font-weight:400;color:#677875;margin-left:5px}input,button,textarea{font:inherit}input{width:100%;margin-top:8px;padding:12px;border:1px solid #bfcac6;border-radius:9px;background:#fcfcf9;color:#17383e;min-height:50px}input:focus,button:focus-visible{outline:3px solid #d5b391;outline-offset:2px}button{cursor:pointer;border:1px solid #bfcec7;border-radius:9px;padding:11px 16px;background:#f5f7f2;color:#17383e;min-height:46px}button.primary{background:#17383e;color:white;border-color:#17383e}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.note{background:#f8f2e8;border-left:3px solid #b66b3f;padding:13px 15px;font-size:15px;line-height:1.8;border-radius:4px}.hero{background:#17383e;color:white;border-color:#17383e}.hero .sub{color:#c6d8d3}.big{font-size:48px;font-weight:700;letter-spacing:-.03em;margin:8px 0}.big span{font-size:22px;color:#d7b593}.split{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-top:1px solid #557070;padding-top:18px;margin-top:18px}.split strong{display:block;font-size:25px;margin-top:5px}.bar{display:flex;height:9px;background:#c99566;border-radius:8px;overflow:hidden;margin-top:20px}.bar i{display:block;background:#6bb8a4}.legend{display:flex;justify-content:space-between;font-size:14px;margin-top:8px;color:#d0dfda}dl{margin:0}dl>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e6e9e2}dt{color:#5b706e;font-size:16px}dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}details{border-top:1px solid #e2e5dd;padding-top:16px;margin-top:20px}summary{cursor:pointer;font-weight:600;line-height:1.7}table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:right;padding:12px 8px;border-bottom:1px solid #e3e7e0}td:first-child,th:first-child{text-align:left}th{color:#667975}#error{color:#9f342c;line-height:1.7}textarea{width:100%;height:170px;padding:12px;font-size:15px}footer{color:#657976;font-size:14px;line-height:1.8}a{color:#8e542e}.badge{display:inline-block;border:1px solid #b0c9c1;border-radius:20px;padding:4px 10px;font-size:13px;color:#d9e6df;margin-top:16px}.schematic{width:100%;height:90px;display:block;margin-bottom:16px}.scroll{overflow:auto}#status{min-height:24px;color:#5d756c;font-size:15px}body.invalid .calculated{display:none}@media(max-width:800px){.layout{grid-template-columns:1fr}.card{padding:20px}main{padding:18px 14px}.big{font-size:44px}}@media(max-width:380px){.fields{grid-template-columns:1fr}}@media print{header{background:white;color:#17383e;padding:10px}header p{color:#17383e}header a,.actions,button,footer{display:none}.layout{display:block}.card{break-inside:avoid}.hero{background:white;color:#17383e}.hero .sub,.legend{color:#17383e}details{display:block}main{padding:0}}
-</style></head><body><header><a href="../">← 工程工具箱</a><div class="eyebrow">BUSBAR LOSS · v1.0</div><h1>銅排損耗計算器</h1><p>從尺寸與電流，取得電阻、壓降及熱源瓦數。</p><span class="badge">直流 · 等截面 · 指定銅溫</span></header><main><div class="layout"><section>
+:root{font-family:system-ui,-apple-system,"Microsoft JhengHei",sans-serif;color:#17383e;background:#f5f3ed;font-size:18px;--copper:#b66b3f;--line:#dcded5}*{box-sizing:border-box}body{margin:0}header{background:#17383e;color:#fff;padding:32px max(20px,calc((100vw - 1160px)/2))}header a{color:#c5dad6;font-size:15px;text-decoration:none}h1{font-size:clamp(28px,4vw,40px);margin:14px 0 8px;letter-spacing:.03em}header p{color:#c8d8d5;margin:0;line-height:1.7}.eyebrow{color:#dfad84;font-size:13px;letter-spacing:.18em;margin-top:22px}main{max-width:1200px;margin:auto;padding:24px 20px 50px}.layout{display:grid;grid-template-columns:1.08fr 1fr;gap:24px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:20px}h2{font-size:22px;margin:0 0 20px}h3{font-size:18px}.sub{font-size:15px;color:#617473;line-height:1.7}.fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:block;font-size:17px;font-weight:600}.unit{font-size:14px;font-weight:400;color:#677875;margin-left:5px}input,button,textarea,select{font:inherit}[hidden]{display:none!important}input,select{width:100%;margin-top:8px;padding:12px;border:1px solid #bfcac6;border-radius:9px;background:#fcfcf9;color:#17383e;min-height:50px}input:focus,select:focus,button:focus-visible{outline:3px solid #d5b391;outline-offset:2px}button{cursor:pointer;border:1px solid #bfcec7;border-radius:9px;padding:11px 16px;background:#f5f7f2;color:#17383e;min-height:46px}button.primary{background:#17383e;color:white;border-color:#17383e}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.note{background:#f8f2e8;border-left:3px solid #b66b3f;padding:13px 15px;font-size:15px;line-height:1.8;border-radius:4px}.hero{background:#17383e;color:white;border-color:#17383e}.hero .sub{color:#c6d8d3}.big{font-size:48px;font-weight:700;letter-spacing:-.03em;margin:8px 0}.big span{font-size:22px;color:#d7b593}.split{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-top:1px solid #557070;padding-top:18px;margin-top:18px}.split strong{display:block;font-size:25px;margin-top:5px}.bar{display:flex;height:9px;background:#c99566;border-radius:8px;overflow:hidden;margin-top:20px}.bar i{display:block;background:#6bb8a4}.legend{display:flex;justify-content:space-between;font-size:14px;margin-top:8px;color:#d0dfda}dl{margin:0}dl>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e6e9e2}dt{color:#5b706e;font-size:16px}dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}details{border-top:1px solid #e2e5dd;padding-top:16px;margin-top:20px}summary{cursor:pointer;font-weight:600;line-height:1.7}table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:right;padding:12px 8px;border-bottom:1px solid #e3e7e0}td:first-child,th:first-child{text-align:left}th{color:#667975}#error{color:#9f342c;line-height:1.7}textarea{width:100%;height:170px;padding:12px;font-size:15px}footer{color:#657976;font-size:14px;line-height:1.8}a{color:#8e542e}.badge{display:inline-block;border:1px solid #b0c9c1;border-radius:20px;padding:4px 10px;font-size:13px;color:#d9e6df;margin-top:16px}.schematic{width:100%;height:90px;display:block;margin-bottom:16px}.scroll{overflow:auto}#status{min-height:24px;color:#5d756c;font-size:15px}body.invalid .calculated{display:none}@media(max-width:800px){.layout{grid-template-columns:1fr}.card{padding:20px}main{padding:18px 14px}.big{font-size:44px}}@media(max-width:380px){.fields{grid-template-columns:1fr}}@media print{header{background:white;color:#17383e;padding:10px}header p{color:#17383e}header a,.actions,button,footer{display:none}.layout{display:block}.card{break-inside:avoid}.hero{background:white;color:#17383e}.hero .sub,.legend{color:#17383e}details{display:block}main{padding:0}}
+</style></head><body><header><a href="../">← 工程工具箱</a><div class="eyebrow">BUSBAR LOSS · v1.1</div><h1>銅排損耗計算器</h1><p>從尺寸與電流，取得電阻、壓降及熱源瓦數。</p><span class="badge">直流 · 等截面</span></header><main><div class="layout"><section>
 <div class="card"><h2>01　銅排與工作條件</h2><svg class="schematic" viewBox="0 0 480 90" role="img" aria-label="電流沿銅排長度方向流動"><defs><linearGradient id="cu"><stop stop-color="#c88d5e"/><stop offset="1" stop-color="#a75e38"/></linearGradient></defs><path d="M70 30L350 30L390 12L110 12Z" fill="#dfb186"/><path d="M70 30H350V65H70Z" fill="url(#cu)"/><path d="M350 30L390 12V47L350 65Z" fill="#82462d"/><path d="M10 47H55M420 47H465" stroke="#17383e" stroke-width="3"/><path d="M45 40L55 47L45 54M455 40L465 47L455 54" fill="none" stroke="#17383e" stroke-width="3"/><text x="210" y="52" fill="white" font-size="15">L × W × t</text></svg>
 <div class="fields">
 <label>電流路徑長度<span class="unit">mm</span><input id="length" type="number" min="0.001" step="any" value="500"></label>
 <label>銅排寬度<span class="unit">mm</span><input id="width" type="number" min="0.001" step="any" value="30"></label>
 <label>銅排厚度<span class="unit">mm</span><input id="thickness" type="number" min="0.001" step="any" value="3"></label>
 <label>總直流電流<span class="unit">A</span><input id="current" type="number" min="0" step="any" value="200"></label>
-<label>銅排溫度<span class="unit">°C</span><input id="temp" type="number" min="-50" max="200" step="any" value="80"></label>
+<label id="manual-temp">銅排溫度<span class="unit">°C</span><input id="temp" type="number" min="-50" max="200" step="any" value="80"></label>
 <label>相同並聯支路數<span class="unit">支</span><input id="parallel" type="number" min="1" max="10000" step="1" value="1"></label>
-</div><p class="sub">長度沿實際電流路徑量取。並聯假設每支銅排尺寸、溫度與接點電阻相同，平均分流。正負極／去回兩段屬於串聯，請分別計算後加總。</p>
+</div>
+<div style="margin-top:18px">
+<label for="temperature-mode">銅排溫度設定</label>
+<select id="temperature-mode"><option value="manual">手動輸入銅溫</option><option value="steady">自動估算穩態銅溫</option></select>
+<div id="steady-inputs" style="margin-top:18px" hidden>
+<div class="fields">
+<label>參考溫度<span class="unit">°C</span><input id="reference-temp" type="number" min="-50" max="200" step="any" value="45"></label>
+<label>單支路等效熱阻<span class="unit">K/W</span><input id="thermal-resistance" type="number" min="0" step="any" placeholder="依實測或 XT 結果填入"></label>
+</div>
+<p class="sub">參考溫度可用銅排附近的空氣溫度。熱阻以單支銅排與該支路接點的總發熱為基準，請使用相同安裝與冷卻條件下的實測或 XT 結果。</p>
+</div></div>
+<p class="sub">長度沿實際電流路徑量取。並聯假設每支銅排尺寸、溫度與接點電阻相同，平均分流。正負極／去回兩段屬於串聯，請分別計算後加總。</p>
 <details><summary>材料參數</summary><div class="fields" style="margin-top:14px"><label>20°C 電阻率<span class="unit">Ω·mm²/m</span><input id="rho" type="number" min="0.000001" step="any" value="0.017241"></label><label>20°C 溫度係數<span class="unit">1/°C</span><input id="alpha" type="number" min="0" step="any" value="0.00393"></label></div><p class="sub">預設為 100% IACS 退火銅的參考值；實際材料請依供應商資料修正。此處 0.017241 Ω·mm²/m = 1.7241 × 10⁻⁸ Ω·m。</p></details></div>
 <div class="card"><h2>02　接點損耗</h2><div class="fields"><label>每支路串聯接點數<span class="unit">處</span><input id="joints" type="number" min="0" max="10000" step="1" value="2"></label><label>每個接點電阻<span class="unit">μΩ</span><input id="contact" type="number" min="0" step="any" value="10"></label></div><p class="sub">10 μΩ 是操作示例，不是螺栓接點的通用值。請使用實測或供應商資料，並填入工作溫度下的接點電阻；不會套用銅的溫度係數。</p><div class="actions"><button id="example">載入示例</button><button id="zero">不計接點</button></div></div>
-<div class="card"><h2>計算方式與適用範圍</h2><p class="sub">ρ(T) = ρ₂₀ [1 + α₂₀(T − 20)]<br>R銅,單支 = ρ(T) L / A<br>I單支 = I總 / n<br>R支路 = R銅,單支 + 接點數 × R接點<br>R等效 = R支路 / n<br>P總 = I總² R等效；ΔV = I總 R等效</p><div class="note">銅排溫度是輸入值，本工具不預測溫升或允許載流量。等截面估算不解析孔邊、彎角、接點的三維電流集中；不包含交流集膚、鄰近效應與磁性損耗。脈動或交流請另外評估。</div><p class="sub">材料與電阻公式參考：<a href="https://kupfer.de/wp-content/uploads/2019/11/Copper-for-Busbars.pdf" target="_blank" rel="noopener">Copper for Busbars — Guidance for Design and Installation</a>。線性溫度修正本版限 −50～200°C；材料參數應與使用範圍相符。</p></div></section><section>
+<div class="card"><h2>計算方式與適用範圍</h2><p class="sub">ρ(T) = ρ₂₀ [1 + α₂₀(T − 20)]<br>R銅,單支 = ρ(T) L / A<br>I單支 = I總 / n<br>R支路 = R銅,單支 + 接點數 × R接點<br>R等效 = R支路 / n<br>P總 = I總² R等效；ΔV = I總 R等效</p><div class="note">穩態模式以單一熱節點反覆計算銅溫與損耗，估算銅排本體代表溫度。接點電阻固定，局部熱點與允許載流量需另行評估。等截面估算不解析孔邊、彎角、接點的三維電流集中；不包含交流集膚、鄰近效應與磁性損耗。脈動或交流請另外評估。</div><p class="sub">材料與電阻公式參考：<a href="https://kupfer.de/wp-content/uploads/2019/11/Copper-for-Busbars.pdf" target="_blank" rel="noopener">Copper for Busbars — Guidance for Design and Installation</a>。線性溫度修正本版限 −50～200°C；材料參數應與使用範圍相符。</p></div></section><section>
 <p id="error" role="alert"></p>
 <div class="calculated"><div class="card hero"><div class="sub">全部並聯支路 · 總損耗</div><div class="big" id="total"></div><div class="sub" id="context"></div><div class="split"><div><span class="sub">銅排本體合計</span><strong id="bodyloss"></strong></div><div><span class="sub">接點合計</span><strong id="jointloss"></strong></div></div><div class="bar"><i id="fraction"></i></div><div class="legend"><span>本體</span><span>接點</span></div></div>
+<div class="card" id="steady-result" hidden><h2>穩態溫度估算</h2><dl id="steady-summary"></dl></div>
 <div class="card"><h2>電氣計算結果</h2><dl id="electrical"></dl></div>
 <div class="card"><h2>FloTHERM／XT 熱源</h2><dl id="thermal"></dl><p class="note">簡化熱模型：每支銅排只施加「單支本體損耗」，接點瓦數施加於接合區。若 XT 已啟用 Joule Heating，不要重複加入同一份損耗。接點體積未定義，因此不提供接點體積熱源。</p><div class="actions"><button class="primary" id="copy">複製計算報告</button><button id="csv">匯出 CSV</button><button id="print">列印／PDF</button></div><p id="status" role="status"></p><textarea id="fallback" hidden aria-label="計算報告，請全選複製" readonly></textarea></div>
 <div class="card"><h2>相同溫度下的電流比較</h2><p class="sub">固定目前銅溫與電阻，損耗隨電流平方變化；未計入升溫回饋。</p><div class="scroll"><table><thead><tr><th>總電流 A</th><th>總損耗 W</th><th>壓降 mV</th></tr></thead><tbody id="sweep"></tbody></table></div></div></div>
-</section></div><footer>Busbar Loss v1.0 · 計算在本機瀏覽器執行。輸入會儲存在此裝置；可離線開啟已下載的 HTML 檔。<br>加入主畫面：iPhone 使用 Safari「分享 → 加入主畫面」；Android 使用瀏覽器選單「加入主畫面」。網站初次開啟需連線。</footer></main>
+</section></div><footer>Busbar Loss v1.1 · 計算在本機瀏覽器執行。輸入會儲存在此裝置；可離線開啟已下載的 HTML 檔。<br>加入主畫面：iPhone 使用 Safari「分享 → 加入主畫面」；Android 使用瀏覽器選單「加入主畫面」。網站初次開啟需連線。</footer></main>
 <script>
 'use strict';
 const ids=['length','width','thickness','current','temp','parallel','rho','alpha','joints','contact'];
 const defaults={length:500,width:30,thickness:3,current:200,temp:80,parallel:1,rho:0.017241,alpha:0.00393,joints:2,contact:10};
 const $=id=>document.getElementById(id);
+const temperatureMin=-50,temperatureMax=200;
+const temperatureTolerance=0.1;
+const maximumIterations=1000;
 function calculate(v){
  for(const k of ids)if(!Number.isFinite(v[k]))throw Error('請填寫所有數值欄位。');
  for(const k of ['length','width','thickness','rho'])if(v[k]<=0)throw Error('長度、寬度、厚度與電阻率必須大於 0。');
  for(const k of ['current','alpha','contact'])if(v[k]<0)throw Error('電流、溫度係數及接點電阻不能為負值。');
- if(v.temp < -50 || v.temp >200)throw Error('本版銅排溫度範圍為 −50～200°C。');
+ if(v.temp < temperatureMin || v.temp > temperatureMax)throw Error('本版銅排溫度範圍為 −50～200°C。');
  if(!Number.isInteger(v.parallel)||v.parallel<1||v.parallel>10000)throw Error('並聯支路數必須是 1～10000 的整數。');
  if(!Number.isInteger(v.joints)||v.joints<0||v.joints>10000)throw Error('接點數必須是 0～10000 的整數。');
  const area=v.width*v.thickness,rhoT=v.rho*(1+v.alpha*(v.temp-20));
@@ -40,14 +55,57 @@ function calculate(v){
  if(Object.values(r).some(x=>!Number.isFinite(x)))throw Error('數值超出可計算範圍，請檢查輸入。');
  return r;
 }
+function solveSteadyTemperature(inputs, reference, thermalResistance){
+ if(!Number.isFinite(reference)||reference<temperatureMin||reference>temperatureMax){
+  throw Error('請輸入 −50～200°C 的參考溫度。');
+ }
+ if(!Number.isFinite(thermalResistance)||thermalResistance<0){
+  throw Error('請輸入大於或等於 0 的單支路等效熱阻。');
+ }
+ const initial=calculate({...inputs,temp:reference});
+ const powerSlope=initial.ib**2*initial.r20*inputs.alpha;
+ const feedback=thermalResistance*powerSlope;
+ const initialRise=thermalResistance*(initial.pbody+initial.pjoint);
+ if(feedback>=1)throw Error('此電流與熱阻下，模型沒有可收斂的穩態溫度。');
+ if(initialRise>(temperatureMax-reference)*(1-feedback)){
+  throw Error('估算穩態溫度超過 200°C，已超出工具的銅電阻率模型範圍。');
+ }
+
+ let temperature=reference;
+ let result=initial;
+ for(let iteration=1;iteration<=maximumIterations;iteration++){
+  const nextTemperature=reference+thermalResistance*(result.pbody+result.pjoint);
+  const change=nextTemperature-temperature;
+  temperature=Math.min(nextTemperature,temperatureMax);
+  result=calculate({...inputs,temp:temperature});
+  // Bound the remaining temperature error even when feedback is close to one.
+  if(change/(1-feedback)<temperatureTolerance){
+   return {temperature,result,iteration,reference,thermalResistance};
+  }
+ }
+ throw Error('穩態溫度在 1,000 輪內未收斂。請檢查電流與等效熱阻。');
+}
 function fmt(x){return x===0?'0':Math.abs(x)<0.0001||Math.abs(x)>=1e7?x.toExponential(4):new Intl.NumberFormat('en-US',{maximumSignificantDigits:6}).format(x);}
 function rows(id,data){$(id).replaceChildren(...data.map(([k,v])=>{const d=document.createElement('div'),a=document.createElement('dt'),b=document.createElement('dd');a.textContent=k;b.textContent=v;d.append(a,b);return d;}));}
 let last=null;
 function update(){
  $('status').textContent='';$('fallback').hidden=true;
+ const mode=$('temperature-mode').value;
+ const estimate=mode==='steady';
+ $('manual-temp').hidden=estimate;
+ $('steady-inputs').hidden=!estimate;
+ $('steady-result').hidden=true;
+ const inputs=Object.fromEntries(ids.map(k=>[k,$(k).valueAsNumber]));
+ const reference=$('reference-temp').valueAsNumber;
+ const thermalResistance=$('thermal-resistance').valueAsNumber;
  try{
- const v=Object.fromEntries(ids.map(k=>[k,$(k).value.trim()===''?NaN:Number($(k).value)])),r=calculate(v);
- last={v,r};document.body.classList.remove('invalid');$('error').textContent='';
+  localStorage.setItem('busbar-loss-v1',JSON.stringify({...inputs,mode,reference,thermalResistance}));
+ }catch{}
+ try{
+ const steady=estimate?solveSteadyTemperature(inputs,reference,thermalResistance):null;
+ const v=steady?{...inputs,temp:steady.temperature}:inputs;
+ const r=steady?steady.result:calculate(v);
+ last={v,r,steady};document.body.classList.remove('invalid');$('error').textContent='';
  $('total').innerHTML=fmt(r.total)+' <span>W</span>';
  $('bodyloss').textContent=fmt(r.bodytotal)+' W';$('jointloss').textContent=fmt(r.jointtotal)+' W';
  $('context').textContent=v.parallel+' 支並聯，每支 '+fmt(r.ib)+' A，銅溫 '+fmt(v.temp)+'°C';
@@ -55,22 +113,54 @@ function update(){
  rows('electrical',[['單支截面積',fmt(r.area)+' mm²'],['單支電流',fmt(r.ib)+' A'],['單支電流密度',fmt(r.j)+' A/mm²'],['單支本體電阻 @20°C',fmt(r.r20*1e6)+' μΩ'],['單支本體電阻 @工作溫度',fmt(r.rbody*1e6)+' μΩ'],['單支路電阻（含接點）',fmt(r.rbranch*1e6)+' μΩ'],['全部支路等效電阻',fmt(r.req*1e6)+' μΩ'],['端到端壓降（含接點）',fmt(r.drop*1e3)+' mV']]);
  rows('thermal',[['每支銅排本體熱源',fmt(r.pbody)+' W'],['每個接點熱源',v.joints?fmt(r.pcontact)+' W':'未設定接點'],['每支路接點合計',fmt(r.pjoint)+' W'],['單支本體體積',fmt(r.volume*1e9)+' mm³'],['單支本體均勻體積熱源',fmt(r.qv)+' W/m³'],['換算 W/mm³',fmt(r.qv/1e9)+' W/mm³']]);
  $('sweep').replaceChildren(...[.5,.75,1,1.25,1.5].map(m=>{const tr=document.createElement('tr');[v.current*m,r.total*m*m,r.drop*m*1e3].forEach(x=>{const td=document.createElement('td');td.textContent=fmt(x);tr.append(td)});return tr}));
- try{localStorage.setItem('busbar-loss-v1',JSON.stringify(v))}catch{}
+ if(steady){
+  rows('steady-summary',[
+   ['銅排穩態溫度（估算）',steady.temperature.toFixed(1)+' °C'],
+   ['相對參考溫度的溫升',(steady.temperature-steady.reference).toFixed(1)+' °C'],
+   ['單支路總發熱（含接點）',fmt(r.pbody+r.pjoint)+' W'],
+   ['收斂迭代',steady.iteration+' 輪']
+  ]);
+  $('steady-result').hidden=false;
+ }
  }catch(e){last=null;document.body.classList.add('invalid');$('error').textContent=e.message;}
 }
 function report(){
  if(!last)return '';
- const {v,r}=last;
- return ['銅排損耗計算器 v1.0','模型：直流、等截面、相同並聯支路平均分流；指定銅溫，未預測溫升。',
+ const {v,r,steady}=last;
+ const temperatureReport=steady?[
+  '溫度模式：單一熱節點穩態估算',
+  '參考溫度 °C: '+steady.reference,
+  '單支路等效熱阻 K/W: '+steady.thermalResistance,
+  '穩態溫升 °C: '+(steady.temperature-steady.reference).toFixed(1),
+  '收斂迭代: '+steady.iteration
+ ]:['溫度模式：手動輸入銅溫'];
+ return ['銅排損耗計算器 v1.1','模型：直流、等截面、相同並聯支路平均分流。',
+ ...temperatureReport,
  ...ids.map(k=>({length:'長度 mm',width:'寬度 mm',thickness:'厚度 mm',current:'總電流 A',temp:'銅溫 °C',parallel:'並聯支路數',rho:'20°C 電阻率 Ω·mm²/m',alpha:'溫度係數 1/°C',joints:'每支路接點數',contact:'每接點電阻 μΩ'})[k]+': '+v[k]),
  '單支路電流 A: '+r.ib,'單支本體電阻 μΩ: '+r.rbody*1e6,'等效電阻（含接點） μΩ: '+r.req*1e6,'端到端壓降 mV: '+r.drop*1e3,'單支本體損耗 W: '+r.pbody,'每接點損耗 W: '+(v.joints?r.pcontact:0),'全部本體損耗 W: '+r.bodytotal,'全部接點損耗 W: '+r.jointtotal,'總損耗 W: '+r.total,'單支本體體積熱源 W/m³: '+r.qv,'單支本體體積熱源 W/mm³: '+r.qv/1e9,'XT 已計算焦耳熱時，請勿重複施加同一熱源。'].join('\n');
 }
-ids.forEach(k=>$(k).addEventListener('input',update));
-$('example').onclick=()=>{ids.forEach(k=>$(k).value=defaults[k]);update()};
+[...ids,'reference-temp','thermal-resistance'].forEach(k=>$(k).addEventListener('input',update));
+$('temperature-mode').addEventListener('change',update);
+$('example').onclick=()=>{
+ ids.forEach(k=>$(k).value=defaults[k]);
+ $('reference-temp').value=45;
+ $('thermal-resistance').value=6;
+ update();
+};
 $('zero').onclick=()=>{$('joints').value=0;update()};
 $('copy').onclick=async()=>{const t=report();if(!t)return;try{await navigator.clipboard.writeText(t);$('status').textContent='已複製完整計算報告。'}catch{$('fallback').value=t;$('fallback').hidden=false;$('fallback').focus();$('fallback').select();$('status').textContent='請複製下方已選取的報告文字。'}};
 $('csv').onclick=()=>{if(!last)return;const lines=report().split('\n').map(s=>'"'+s.replaceAll('"','""')+'"').join('\r\n'),blob=new Blob(['\ufeff'+lines],{type:'text/csv;charset=utf-8'}),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download='busbar-loss.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='已匯出 CSV。'};
 $('print').onclick=()=>window.print();
-try{const saved=JSON.parse(localStorage.getItem('busbar-loss-v1'));if(saved)ids.forEach(k=>{if(typeof saved[k]==='number'&&Number.isFinite(saved[k]))$(k).value=saved[k]})}catch{}
+try{
+ const saved=JSON.parse(localStorage.getItem('busbar-loss-v1'));
+ if(saved){
+  const fields=[...ids.map(k=>[k,k]),['reference-temp','reference'],['thermal-resistance','thermalResistance']];
+  for(const [id,key] of fields){
+   if(typeof saved[key]==='number')$(id).value=saved[key];
+   if(saved[key]===null)$(id).value='';
+  }
+  if(saved.mode==='steady')$('temperature-mode').value='steady';
+ }
+}catch{}
 update();
 </script></body></html>
